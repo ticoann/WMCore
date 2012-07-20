@@ -164,12 +164,14 @@ class JobArchiverPoller(BaseWorkerThread):
 
         successList = []
         failList    = []
-
+        killList    = []
 
 
         for job in doneList:
             if job["outcome"] == "success":
                 successList.append(job)
+            elif job["outcome"] == "killed":
+                killList.append(job)
             else:
                 failList.append(job)
                 
@@ -180,6 +182,7 @@ class JobArchiverPoller(BaseWorkerThread):
             
         self.changeState.propagate(successList, "cleanout", "success")
         self.changeState.propagate(failList, "cleanout", "exhausted")
+        self.changeState.propagate(killList, "cleanout", "killed")
         myThread.transaction.commit()
 
 
