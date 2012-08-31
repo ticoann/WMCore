@@ -229,10 +229,9 @@ class TaskArchiverPoller(BaseWorkerThread):
 
     def algorithm(self, parameters = None):
         """
-	Performs the archiveJobs method, looking for each type of failure
-	And deal with it as desired.
+        Performs the archiveJobs method, looking for each type of failure
+        And deal with it as desired.
         """
-        logging.debug("Running algorithm for finding finished subscriptions")
         try:
             self.archiveTasks()
         except WMException:
@@ -262,8 +261,8 @@ class TaskArchiverPoller(BaseWorkerThread):
         finishing things up.
         """
 
-
         subList = self.findFinishedSubscriptions()
+        logging.info("Found %i finished subscriptions" % len(subList))
         if len(subList) == 0:
             return
 
@@ -360,13 +359,18 @@ class TaskArchiverPoller(BaseWorkerThread):
                 workDir, taskDir = getMasterName(startDir = self.jobCacheDir,
                                                  workflow = workflow)
                 logging.info("About to delete work directory %s" % taskDir)
-                if os.path.isdir(taskDir):
-                    # Remove the taskDir, because we're done
-                    shutil.rmtree(taskDir)
+                if os.path.exists(taskDir):
+                    if os.path.isdir(taskDir):
+                        shutil.rmtree(taskDir)
+                    else:
+                        # What we think of as a working directory is not a directory
+                        # This should never happen and there is no way we can recover
+                        # from this here. Bail out now and have someone look at things. 
+                        msg = "Work directory is not a directory, this should never happen: %s" % taskDir
+                        raise TaskArchiverPollerException(msg)
                 else:
                     msg = "Attempted to delete work directory but it was already gone: %s" % taskDir
-                    logging.error(msg)
-                    self.sendAlert(1, msg = msg)
+                    logging.debug(msg)
 
                 # Now check if the workflow is done
                 if not workflow.countWorkflowsBySpec() == 0:
@@ -741,5 +745,4 @@ class TaskArchiverPoller(BaseWorkerThread):
             self.fwjrdatabase.delete_doc(id = id, rev = rev)
 
         return
-
 

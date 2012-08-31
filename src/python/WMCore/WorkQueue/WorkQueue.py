@@ -116,7 +116,7 @@ class WorkQueue(WorkQueueBase):
         self.params.setdefault('PhEDExEndpoint', None)
         self.params.setdefault('PopulateFilesets', True)
         self.params.setdefault('LocalQueueFlag', True)
-        self.params.setdefault('QueueRetryTime', 3600)
+        self.params.setdefault('QueueRetryTime', 86400)
         self.params.setdefault('stuckElementAlertTime', 86400)
         self.params.setdefault('reqmgrCompleteGraceTime', 604800)
         self.params.setdefault('cancelGraceTime', 604800)
@@ -186,10 +186,7 @@ class WorkQueue(WorkQueueBase):
         if type(self.params['Teams']) in types.StringTypes:
             self.params['Teams'] = [x.strip() for x in \
                                     self.params['Teams'].split(',')]
-        
-        if not self.params.get('LocalQueueFlag') and not self.params.get('WMStatsCouchUrl'):
-            raise RuntimeError, 'WMStatsCouchUrl config value mandatory'
-        
+
         self.dataLocationMapper = WorkQueueDataLocationMapper(self.logger, self.backend,
                                                               phedex = self.phedexService,
                                                               sitedb = self.SiteDB,
@@ -379,6 +376,29 @@ class WorkQueue(WorkQueueBase):
                                     NumOfFilesAdded = match['NumOfFilesAdded'])
 
         return sub
+
+    def addNewFilesToOpenSubscriptions(self, *elements):
+        """Inject new files to wmbs for running elements that have new files.
+            Assumes elements are from the same workflow"""
+        wmspec = None
+        for ele in elements:
+            if not ele.isRunning() or not ele['SubscriptionId'] or not ele:
+                continue
+            if not ele['Inputs'] or not ele['OpenForNewData']:
+                continue
+            if not wmspec:
+                wmspec = self.backend.getWMSpec(ele['RequestName'])
+            blockName, dbsBlock = self._getDBSBlock(ele, wmspec)
+            if ele['NumOfFilesAdded'] != len(dbsBlock['Files']):
+                self.logger.info("Adding new files to open block %s (%s)" % (blockName, ele.id))
+                from WMCore.WorkQueue.WMBSHelper import WMBSHelper
+                wmbsHelper = WMBSHelper(wmspec, ele['TaskName'], blockName, ele['Mask'], self.params['CacheDir'])
+                ele['NumOfFilesAdded'] += wmbsHelper.createSubscriptionAndAddFiles(block = dbsBlock)[1]
+                self.backend.updateElements(ele.id, NumOfFilesAdded = ele['NumOfFilesAdded'])
+            if dbsBlock['IsOpen'] != ele['OpenForNewData']:
+                self.logger.info("Closing open block %s (%s)" % (blockName, ele.id))
+                self.backend.updateElements(ele.id, OpenForNewData = dbsBlock['IsOpen'])
+                ele['OpenForNewData'] = dbsBlock['IsOpen']
 
     def _assignToChildQueue(self, queue, *elements):
         """Assign work from parent to queue"""
@@ -702,6 +722,8 @@ class WorkQueue(WorkQueueBase):
                             self.logger.info('Waiting for parent queue to delete "%s"' % result['RequestName'])
                         continue
 
+                    self.addNewFilesToOpenSubscriptions(*elements)
+
                     updated_elements = [x for x in result['Elements'] if x.modified]
                     for x in updated_elements:
                         self.logger.debug("Updating progress %s (%s): %s" % (x['RequsetName'], x.id, x.statusMetrics()))
@@ -782,17 +804,18 @@ class WorkQueue(WorkQueueBase):
                     work, totalStats = self._splitWork(inbound['WMSpec'], None, inbound['Inputs'], inbound['Mask'])
                     self.backend.insertElements(work, parent = inbound) # if this fails, rerunning will pick up here
                     # save inbound work to signal we have completed queueing
-                    
+
                     # add the total work on wmstat summary
                     self.backend.updateInboxElements(inbound.id, Status = 'Acquired')
-                    
-                    # what would you do if it fails (currently globalqueue and wmstats will be in the same couchserver)             
-                    if not self.params.get('LocalQueueFlag'):
-                        #only update for global queue
-                        wmstatSvc = WMStatsWriter(self.params.get('WMStatsCouchUrl'))
-                        #TODO need to handle error case?
-                        wmstatSvc.insertTotalStats(inbound['WMSpec'].name(), totalStats)
-                        
+
+                    if not self.params.get('LocalQueueFlag') and self.params.get('WMStatsCouchUrl'):
+                        # only update global stats for global queue
+                        try:
+                            wmstatSvc = WMStatsWriter(self.params.get('WMStatsCouchUrl'))
+                            wmstatSvc.insertTotalStats(inbound['WMSpec'].name(), totalStats)
+                        except Exception, ex:
+                            self.logger.info('Error publishing %s to WMStats: %s' % (inbound['RequestName'], str(ex)))
+
             except TERMINAL_EXCEPTIONS, ex:
                 self.logger.info('Failing workflow "%s": %s' % (inbound['RequestName'], str(ex)))
                 self.backend.updateInboxElements(inbound.id, Status = 'Failed')
@@ -801,7 +824,9 @@ class WorkQueue(WorkQueueBase):
             except Exception, ex:
                 # if request has been failing for too long permanently fail it.
                 if (float(inbound.timestamp) + self.params['QueueRetryTime']) < time.time():
-                    self.logger.info('Failing workflow "%s": %s' % (inbound['RequestName'], str(ex)))
+                    self.logger.info('Failing workflow "%s" as not queued in %d secs: %s' % (inbound['RequestName'],
+                                                                                             self.params['QueueRetryTime'],
+                                                                                             str(ex)))
                     self.backend.updateInboxElements(inbound.id, Status = 'Failed')
                 else:
                     self.logger.info('Exception splitting work for wmspec "%s": %s' % (inbound['RequestName'], str(ex)))

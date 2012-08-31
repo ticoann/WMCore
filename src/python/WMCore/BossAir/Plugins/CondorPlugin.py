@@ -885,6 +885,12 @@ class CondorPlugin(BasePlugin):
         else:
             jdl.append('+DESIRED_Sites = \"%s\"\n' %(jobCE))
 
+        if job.get('proxyPath', None):
+            jdl.append('x509userproxy = %s\n' % job['proxyPath'])
+
+        if job.get('requestName', None):
+            jdl.append('+WMAgent_RequestName = %s\n' % job['requestName'])
+
         return jdl
 
     def getCEName(self, jobSite):

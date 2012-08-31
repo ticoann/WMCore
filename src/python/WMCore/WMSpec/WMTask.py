@@ -382,7 +382,7 @@ class WMTaskHelper(TreeHelper):
         if hasattr(self.data, "production"):
             if hasattr(self.data.production, "firstLumi"):
                 return self.data.production.firstEvent
-        return None
+        return 1
 
     def getFirstLumi(self):
         """
@@ -393,7 +393,7 @@ class WMTaskHelper(TreeHelper):
         if hasattr(self.data, "production"):
             if hasattr(self.data.production, "firstLumi"):
                 return self.data.production.firstLumi
-        return None
+        return 1
 
     def setSplittingParameters(self, **params):
         """
@@ -830,8 +830,8 @@ class WMTaskHelper(TreeHelper):
         for taskStep in taskSteps:
             reportPath = os.path.join(jobLocation, taskStep, "Report.pkl")
             if os.path.isfile(reportPath):
-                stepReport = Report.Report(taskStep)
-                stepReport.unpersist(reportPath)
+                stepReport = Report.Report()
+                stepReport.unpersist(reportPath, taskStep)
                 finalReport.setStep(taskStep, stepReport.retrieveStep(taskStep))
             else:
                 # Then we have a missing report
