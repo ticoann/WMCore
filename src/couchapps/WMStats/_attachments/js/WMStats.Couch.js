@@ -16,7 +16,8 @@ WMStats.Couch = (function(){
         // {'beforeSend': .., 'complete': ...}
         var options = options || {};
         options.success = callback;
-        var ajaxOptions = ajaxOptions || WMStats.Globals.AJAX_LOADING_STATUS
+        //var ajaxOptions = ajaxOptions || WMStats.Globals.AJAX_LOADING_STATUS
+        var ajaxOptions = ajaxOptions
         if (ajaxOptions) {
             for (var opt in ajaxOptions) {
                 options[opt] = ajaxOptions[opt];
@@ -47,9 +48,9 @@ WMStats.Couch = (function(){
     function view(name, options, callback, ajaxOptions){
         //make all the view stale options update_after
         var options = options || {};
-        if (options.stale != undefined) {
-                options.stale = "update_after"
-        }    
+        if (options.stale === undefined) {
+            options.stale = "update_after"
+        }
         return _couchDB.view(_Design +"/" + name, 
                              _combineOption(options, callback, ajaxOptions));
     }

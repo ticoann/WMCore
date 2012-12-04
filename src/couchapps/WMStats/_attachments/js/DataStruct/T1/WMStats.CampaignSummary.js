@@ -13,6 +13,11 @@ WMStats.CampaignSummary = function() {
         summary.summaryStruct.numRequests = 1;
         summary.jobStatus = this._get(doc, 'status', {})
         
+        //support legacy code which had cooloff jobs instead cooloff.create, cooloff.submit
+        //cooloff.job
+        if ((typeof summary.jobStatus.cooloff) === "number") {
+            summary.jobStatus.cooloff = {create: 0, submit: 0, job: summary.jobStatus.cooloff}
+        }
         return summary;
     };
     

@@ -3,10 +3,6 @@ WMStats.ActiveRequestModel = function() {
     var initView = 'requestByStatus'; 
     var options = {'keys': [
                             "new",
-                            //"testing-approved",
-                            //"testing",
-                            //"tested",
-                            //"test-failed",
                             "assignment-approved",
                             "assigned",
                             "ops-hold",

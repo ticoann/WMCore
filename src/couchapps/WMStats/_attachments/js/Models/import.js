@@ -4,6 +4,7 @@ WMStats.Globals.importScripts([
     "js/Models/WMStats.JobSummaryModel.js",
     "js/Models/WMStats.JobDetailModel.js",
     "js/Models/WMStats.AgentModel.js",
+    "js/Models/WMStats.HistoryModel.js"
 ])
 
 if (WMStats.Globals.VARIANT == "tier1") {

@@ -5,10 +5,24 @@ WMStats.RunSummaryTable = function (data, containerDiv) {
     var tableConfig = {
         "sScrollX": "",
         "aoColumns": [
+            {"sTitle": "D", 
+             "sDefaultContent": 0,
+             "fnRender": function ( o, val ) {
+                            return WMStats.Utils.formatDetailButton("detail");
+                        }},
+            {"sTitle": "L", 
+             "sDefaultContent": 0,
+             "fnRender": function ( o, val ) {
+                            return WMStats.Utils.formatDetailButton("drill");
+                        }},
             { "mDataProp": "key", "sTitle": "run"},               
             { "mDataProp": function (source, type, val) { 
                               return source.summary.summaryStruct.numRequests;
                            }, "sTitle": "requests", "sDefaultContent": 0, 
+            },
+            { "mDataProp": function (source, type, val) { 
+                              return source.summary.summaryStruct.runStatus;
+                           }, "sTitle": "run status", "sDefaultContent": "Active", 
             },
             { "mDataProp": function (source, type, val) { 
                               return source.summary.getJobStatus("success");

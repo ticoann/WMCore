@@ -12,14 +12,15 @@ WMStats.JobSummaryTable = function (data, containerDiv) {
                     return source.task;
                 }
                 return source.task;
-            }, "sTitle": "task"},
+            }, "sTitle": "task", "sWidth": "150px"},
             { "mDataProp": "status", "sTitle": "status"},
             { "mDataProp": "site", "sTitle": "site"},
             { "mDataProp": "exitCode", "sTitle": "exit code"},
             { "mDataProp": "count", "sTitle": "jobs"},
             { "mDataProp": "errorMsg", "sTitle": "error mesage", 
                            "sDefaultContent": ""}
-         ]
+         ],
+         "aaSorting": [[1, 'asc']]
     };
     
     tableConfig.aaData = data.getData().status;

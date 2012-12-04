@@ -5,6 +5,16 @@ WMStats.UserSummaryTable = function (data, containerDiv) {
     var tableConfig = {
         "sScrollX": "",
         "aoColumns": [
+            {"sTitle": "D", 
+             "sDefaultContent": 0,
+             "fnRender": function ( o, val ) {
+                            return WMStats.Utils.formatDetailButton("detail");
+                        }},
+            {"sTitle": "L", 
+             "sDefaultContent": 0,
+             "fnRender": function ( o, val ) {
+                            return WMStats.Utils.formatDetailButton("drill");
+                        }},
             { "mDataProp": "key", "sTitle": "user dn"},
             { "mDataProp": function (source, type, val) { 
                               return source.summary.summaryStruct.numRequests;

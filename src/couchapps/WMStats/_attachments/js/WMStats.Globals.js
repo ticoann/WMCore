@@ -24,8 +24,8 @@ WMStats.Globals = function($){
             return "/couchdb/workloadsummary/_design/WorkloadSummary/_show/histogramByWorkflow/";
         } else if (_dbVariants[dbname] == "analysis") {
             return "/couchdb/analysis_workloadsummary/_design/WorkloadSummary/_show/histogramByWorkflow/";
-        } else {
-            return null;
+        } else if (_dbVariants[dbname] == "tier0") {
+            return "/couchdb/t0_workloadsummary/_design/WorkloadSummary/_show/histogramByWorkflow/";
         }
         
     };
@@ -65,3 +65,8 @@ WMStats.CustomEvents.CATEGORY_DETAIL_READY = "C_6";
 
 WMStats.CustomEvents.JOB_SUMMARY_READY = "C_7";
 WMStats.CustomEvents.JOB_DETAIL_READY = "C_8";
+
+WMStats.CustomEvents.LOADING_DIV_START = "C_9";
+WMStats.CustomEvents.LOADING_DIV_END = "C_10";
+
+WMStats.CustomEvents.HISTORY_LOADED = "C_11";

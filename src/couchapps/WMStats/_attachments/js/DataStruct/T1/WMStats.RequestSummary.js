@@ -12,7 +12,11 @@ WMStats.RequestsSummary = function() {
         summary.summaryStruct.processedEvents = this._get(doc, "output_progress.0.events", 0);
         summary.summaryStruct.length = 1;
         summary.jobStatus = this._get(doc, 'status', {})
-        
+        //support legacy code which had cooloff jobs instead cooloff.create, cooloff.submit
+        //cooloff.job
+        if ((typeof summary.jobStatus.cooloff) === "number") {
+            summary.jobStatus.cooloff = {create: 0, submit: 0, job: summary.jobStatus.cooloff}
+        }
         return summary;
     };
     
@@ -81,7 +85,7 @@ WMStats.Requests = function(noFilterFlag) {
                                         'message': "not pulled by GQ"});
                 }
             }
-            //TODO: this needs to be redifined for several use case
+            //TODO: this needs to be redefined for several use case
             // since local queue is partially pulled check
             //localqueue not pulled case
             if (reqStatusInfo.status == "acquired") {
