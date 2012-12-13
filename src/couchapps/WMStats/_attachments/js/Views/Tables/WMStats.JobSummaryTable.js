@@ -29,4 +29,4 @@ WMStats.JobSummaryTable = function (data, containerDiv) {
 
     $(containerDiv).data('workflow', (data.getData()).workflow)
     return WMStats.Table(tableConfig).create(containerDiv, filterConfig);
-}
+};

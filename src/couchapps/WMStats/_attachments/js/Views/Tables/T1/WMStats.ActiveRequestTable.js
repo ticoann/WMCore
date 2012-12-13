@@ -108,4 +108,4 @@ WMStats.ActiveRequestTable = function (requestData, containerDiv) {
     tableConfig.aaData = requestData.getList();
     
     return WMStats.Table(tableConfig).create(containerDiv, filterConfig);
-}
+};

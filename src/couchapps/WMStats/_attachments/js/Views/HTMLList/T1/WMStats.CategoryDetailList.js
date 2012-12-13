@@ -41,4 +41,4 @@ WMStats.namespace('CategoryDetailList');
     WMStats.CategoryDetailList = function (data, containerDiv) {
          $(containerDiv).html(format(data));
     }
-})()
+})();

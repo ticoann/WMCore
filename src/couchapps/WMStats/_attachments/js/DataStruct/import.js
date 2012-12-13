@@ -8,6 +8,7 @@ WMStats.Globals.importScripts([
     "js/DataStruct/WMStats.Alerts.js",
     "js/DataStruct/WMStats.SiteSummary.js",
     "js/DataStruct/WMStats.JobDetails.js",
+    "js/DataStruct/WMStats.WorkloadSummary.js",
     "js/DataStruct/WMStats.History.js"
 ])
 
@@ -24,4 +25,4 @@ if (WMStats.Globals.VARIANT == "tier1") {
     WMStats.Globals.importScripts(["js/DataStruct/T1/WMStats.RequestSummary.js",
                                    "js/DataStruct/T1/WMStats.CampaignSummary.js",
                                    "js/DataStruct/Analysis/WMStats.UserSummary.js"])
-} 
+};

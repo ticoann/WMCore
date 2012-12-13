@@ -25,4 +25,4 @@ if (WMStats.Globals.VARIANT == "tier1") {
                                    "js/Views/HTMLList/Analysis/WMStats.CategoryDetailList.js",
                                    "js/Views/HTMLList/T1/WMStats.RequestSummaryList.js",
                                    "js/Views/HTMLList/T1/WMStats.RequestDataList.js"])
-} 
+};

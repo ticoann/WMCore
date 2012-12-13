@@ -125,4 +125,4 @@ WMStats.Utils.utcClock = function() {
                     appendZero(now.getUTCHours())  + ":" + appendZero(now.getUTCMinutes()) + ":" +
                     appendZero(now.getUTCSeconds()) + " UTC";
     return utcString;
-}
+};

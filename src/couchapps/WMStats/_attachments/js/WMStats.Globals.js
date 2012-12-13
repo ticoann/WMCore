@@ -10,7 +10,7 @@ WMStats.Globals = function($){
 
     function getReqDetailPrefix () {
         if (_dbVariants[dbname] == "tier1") {
-            return "/reqmgr/view/details/";
+            return "https://cmsweb.cern.ch/reqmgr/view/details/";
         } else if (_dbVariants[dbname] == "analysis") {
             return "/an_reqmgr/view/details/";
         } else {
@@ -20,14 +20,17 @@ WMStats.Globals = function($){
     };
     
     function getWorkloadSummaryPrefix () {
+        return "/couchdb/" + getWorkloadSummaryDB() + "/_design/WorkloadSummary/_show/histogramByWorkflow/";
+    };
+    
+    function getWorkloadSummaryDB() {
         if (_dbVariants[dbname] == "tier1") {
-            return "/couchdb/workloadsummary/_design/WorkloadSummary/_show/histogramByWorkflow/";
+            return "workloadsummary";
         } else if (_dbVariants[dbname] == "analysis") {
-            return "/couchdb/analysis_workloadsummary/_design/WorkloadSummary/_show/histogramByWorkflow/";
+            return "analysis_workloadsummary";
         } else if (_dbVariants[dbname] == "tier0") {
-            return "/couchdb/t0_workloadsummary/_design/WorkloadSummary/_show/histogramByWorkflow/";
+            return "t0_workloadsummary";
         }
-        
     };
     
     return {
@@ -36,8 +39,10 @@ WMStats.Globals = function($){
         AJAX_LOADING_STATUS: {beforeSend: function(){$('#loading_page').addClass('front').show()}, 
                               complete: function(){$('#loading_page').hide()}},
         COUCHDB_NAME: dbname,
+        WORKLOAD_SUMMARY_COUCHDB_NAME:  getWorkloadSummaryDB(), 
         VARIANT: _dbVariants[dbname],
         COUCHAPP_DESIGN: "WMStats",
+        WORKLOAD_SUMMARY_COUCHAPP_DESIGN: "WorkloadSummary",
         CONFIG: null, //this will be set when WMStats.Couch.loadConfig is called. just place holder or have default config
         loadScript: function (url, success) {
                         $.ajax({async: false, url: url, dataType: 'script', success: success})

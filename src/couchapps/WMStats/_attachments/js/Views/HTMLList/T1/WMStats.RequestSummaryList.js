@@ -23,4 +23,4 @@ WMStats.namespace('RequestSummaryList');
     WMStats.RequestSummaryList = function (data, containerDiv) {
          $(containerDiv).html(format(data));
     }
-})()
+})();

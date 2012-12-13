@@ -67,4 +67,4 @@ WMStats.RunSummary = function() {
     };
     
     return runSummary;
-}
+};

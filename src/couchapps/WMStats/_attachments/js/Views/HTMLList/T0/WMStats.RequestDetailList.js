@@ -30,4 +30,4 @@ WMStats.namespace('RequestDetailList');
     WMStats.RequestDetailList = function (data, containerDiv) {
          $(containerDiv).html(format(data));
     }
-})()
+})();

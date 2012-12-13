@@ -74,4 +74,4 @@ WMStats.namespace("GenericController");
         $('#tab_board li').removeClass("tabs-selected");
         $('#tab_board a[href="' + showSelector +'"]').parent().addClass("tabs-selected")
     };
-})(jQuery)
+})(jQuery);

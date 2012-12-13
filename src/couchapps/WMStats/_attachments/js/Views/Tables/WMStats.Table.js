@@ -61,4 +61,4 @@ WMStats.Table = function(config, tableSetting) {
             'updateConfig': updateConfig,
             'create': create
             }
-}
+};

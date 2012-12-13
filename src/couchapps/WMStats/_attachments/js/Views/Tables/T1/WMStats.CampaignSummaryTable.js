@@ -63,4 +63,4 @@ WMStats.CampaignSummaryTable = function (data, containerDiv) {
     var filterConfig = {};
     
     return WMStats.Table(tableConfig).create(containerDiv,filterConfig);
-}
+};

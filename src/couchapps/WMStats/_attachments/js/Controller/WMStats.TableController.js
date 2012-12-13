@@ -126,4 +126,4 @@
         $(this).removeClass('mouseoverRow')
     });
 
-})(jQuery)
+})(jQuery);

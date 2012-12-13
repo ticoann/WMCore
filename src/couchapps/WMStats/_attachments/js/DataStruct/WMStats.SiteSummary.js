@@ -21,4 +21,4 @@ WMStats.SiteSummary = function() {
     };
     
     return siteSummary;
-}
+};

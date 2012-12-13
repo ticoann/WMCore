@@ -21,4 +21,4 @@ WMStats.ActiveRequestModel = function() {
     var reqModel = new WMStats._RequestModelBase(initView, options);
     reqModel.setTrigger(WMStats.CustomEvents.REQUESTS_LOADED);
     return reqModel;
-}()
+}();

@@ -108,4 +108,4 @@ WMStats.namespace('JobDetailList');
     WMStats.JobDetailList = function (data, containerDiv) {
          $(containerDiv).html(format(data));
     }
-})()
+})();

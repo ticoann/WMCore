@@ -22,4 +22,4 @@ WMStats.CampaignSummary = function() {
     };
     
     return campaignSummary;
-}
+};

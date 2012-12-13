@@ -2,12 +2,14 @@
  * Define Global values for couch db and couch db function
  * this has dependency on jquery.js and jquery.couch.js
  */
+WMStats.namespace("CouchBase")
 WMStats.namespace("Couch")
+WMStats.namespace("WorkloadSummaryCouch")
 
-WMStats.Couch = (function(){
+WMStats.CouchBase = function(dbName, designName){
     // couchapp name
-    var _Design = WMStats.Globals.COUCHAPP_DESIGN;
-    var _couchDB = $.couch.db(WMStats.Globals.COUCHDB_NAME);
+    var _Design = designName;
+    var _couchDB = $.couch.db(dbName);
     var _config;
 
     function _combineOption(options, callback, ajaxOptions) {
@@ -60,4 +62,8 @@ WMStats.Couch = (function(){
     }
 
     return {'loadConfig': loadConfig, 'view': view, "allDocs": allDocs};
-})()
+}
+
+WMStats.Couch = WMStats.CouchBase(WMStats.Globals.COUCHDB_NAME, WMStats.Globals.COUCHAPP_DESIGN);
+WMStats.WorkloadSummaryCouch = WMStats.CouchBase(WMStats.Globals.WORKLOAD_SUMMARY_COUCHDB_NAME,
+                                                 WMStats.Globals.WORKLOAD_SUMMARY_COUCHAPP_DESIGN);

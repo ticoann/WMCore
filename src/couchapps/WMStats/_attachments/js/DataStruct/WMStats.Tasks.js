@@ -45,4 +45,4 @@ WMStats.Tasks.prototype = {
             tasks[taskname]
         }
     }
-}
+};

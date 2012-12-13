@@ -75,4 +75,4 @@ WMStats.History = function (couchData) {
     if (couchData) historyData.setData(couchData);
     
     return historyData;
-}
+};

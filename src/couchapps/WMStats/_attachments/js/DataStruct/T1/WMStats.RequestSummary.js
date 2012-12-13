@@ -100,4 +100,4 @@ WMStats.Requests = function(noFilterFlag) {
     }
 
     return tier1Requests;
-}
+};

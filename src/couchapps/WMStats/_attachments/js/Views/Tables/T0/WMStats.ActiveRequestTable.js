@@ -117,4 +117,4 @@ WMStats.ActiveRequestTable = function (requestData, containerDiv) {
     tableConfig.aaData = requestData.getList(runNumerDesc);
     
     return WMStats.Table(tableConfig).create(containerDiv, null);
-}
+};
