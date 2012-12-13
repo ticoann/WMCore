@@ -193,5 +193,3 @@ class FileInfo:
 
 
         self.siteCfg = loadSiteLocalConfig()
-
-    def setMergeFlag(self):
