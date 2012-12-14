@@ -34,12 +34,19 @@ function(doc) {
           for (var outputModuleName in stepOutput) {
             for (var outputFileIndex in stepOutput[outputModuleName]) {
               var outputFile = stepOutput[outputModuleName][outputFileIndex];
-    
-              var datasetPath = '/' + outputFile['dataset']['primaryDataset'] +
-                                  '/' + outputFile['dataset']['processedDataset'] +
-                                  '/' + outputFile['dataset']['dataTier'];
-              datasetData[datasetPath] = {'size': outputFile['size'], 
-                                      'events': outputFile['events']}
+              // only calculate merged files.
+              if (outputFile.merged){
+                  var datasetPath = '/' + outputFile['dataset']['primaryDataset'] +
+                                      '/' + outputFile['dataset']['processedDataset'] +
+                                      '/' + outputFile['dataset']['dataTier'];
+                  var totalLumis = 0;
+                  for (var run in outputFile['runs']) {
+                      totalLumis += outputFile['runs'][run].length;
+                  }
+                  datasetData[datasetPath] = {'size': outputFile['size'], 
+                                              'events': outputFile['events'],
+                                              'totalLummis': totalLumis}
+              }
             }
           }
           cmsRunCPUPerformance.totalJobCPU += Number(stepObj.performance.cpu.TotalJobCPU);
