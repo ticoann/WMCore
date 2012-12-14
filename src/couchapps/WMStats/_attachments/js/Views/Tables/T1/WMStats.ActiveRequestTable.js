@@ -9,12 +9,25 @@ WMStats.ActiveRequestTable = function (requestData, containerDiv) {
         "iDisplayLength": 25,
         "sScrollX": "",
         "sDom": 'lrtip',
+        "bAutoWidth": false,
         "aoColumns": [
+            {"sTitle": "D", 
+             "sDefaultContent": 0,
+             "sWidth": "15px",
+             "fnRender": function ( o, val ) {
+                            return WMStats.Utils.formatDetailButton("detail");
+                        }},
+            {"sTitle": "L", 
+             "sDefaultContent": 0,
+             "sWidth": "15px",
+             "fnRender": function ( o, val ) {
+                            return WMStats.Utils.formatDetailButton("drill");
+                        }},
             { "mDataProp": "workflow", "sTitle": "workflow",
               "fnRender": function ( o, val ) {
                             return formatReqDetailUrl(o.aData.workflow);
                       },
-              "bUseRendered": false
+              "bUseRendered": false, "sWidth": "150px"
             },
             { "mDataProp": function (source, type, val) { 
                               return source.request_status[source.request_status.length -1].status
@@ -25,6 +38,7 @@ WMStats.ActiveRequestTable = function (requestData, containerDiv) {
                           },
               "bUseRendered": false
             },
+            { "mDataProp": "request_type", "sTitle": "type", "sDefaultContent": ""},
             { "mDataProp": "priority", "sTitle": "priority", "sDefaultContent": 0},
             { "sDefaultContent": 0,
               "sTitle": "queue injection",  
@@ -94,4 +108,4 @@ WMStats.ActiveRequestTable = function (requestData, containerDiv) {
     tableConfig.aaData = requestData.getList();
     
     return WMStats.Table(tableConfig).create(containerDiv, filterConfig);
-}
+};

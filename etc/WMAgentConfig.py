@@ -247,7 +247,7 @@ config.TaskArchiver.localCouchURL = "%s/%s" % (config.JobStateMachine.couchurl, 
 config.TaskArchiver.localQueueURL = "%s/%s" % (config.WorkQueueManager.couchurl, config.WorkQueueManager.dbname)
 config.TaskArchiver.localWMStatsURL = "%s/%s" % (config.JobStateMachine.couchurl, config.JobStateMachine.jobSummaryDBName)
 config.TaskArchiver.centralWMStatsURL = "Central WMStats URL"
-config.TaskArchiver.DataKeepDays = 1 # delete after a day maybe change to a week
+config.TaskArchiver.DataKeepDays = 0.25 # delete after a day maybe change to a week
 config.TaskArchiver.cleanCouchInterval = 60 * 20 # 20 min
 
 config.webapp_('WMBSService')

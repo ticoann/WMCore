@@ -78,10 +78,15 @@ class AnalyticsPoller(BaseWorkerThread):
 
             #fwjr per request info
             logging.info("Getting FWJRJob Couch Data ...")
-            fwjrInfoFromCouch = self.localCouchDB.getEventSummaryByWorkflow()
 
+            #fwjrInfoFromCouch = self.localCouchDB.getEventSummaryByWorkflow()
+            fwjrInfoFromCouch = self.localCouchDB.getJobPerformanceByTaskAndSite()
+            
             logging.info("Getting Batch Job Data ...")
             batchJobInfo = self.wmagentDB.getBatchJobInfo()
+            
+            logging.info("Getting Finished Task Data ...")
+            finishedTasks = self.wmagentDB.getFinishedSubscriptionByTask()
 
             # get the data from local workqueue:
             # request name, input dataset, inWMBS, inQueue
@@ -91,10 +96,11 @@ class AnalyticsPoller(BaseWorkerThread):
             # combine all the data from 3 sources
             logging.info("""Combining data from
                                    Job Couch(%s),
-                                   FWJR(%s),
+                                   FWJR(%s), 
                                    Batch Job(%s),
-                                   Local Queue(%s)  ..."""
-                    % (len(jobInfoFromCouch), len(fwjrInfoFromCouch), len(batchJobInfo), len(localQInfo)))
+                                   Finished Tasks(%s),
+                                   Local Queue(%s)  ...""" 
+                    % (len(jobInfoFromCouch), len(fwjrInfoFromCouch), len(batchJobInfo), len(finishedTasks), len(localQInfo)))
 
             tempCombinedData = combineAnalyticsData(jobInfoFromCouch, batchJobInfo)
             combinedRequests = combineAnalyticsData(tempCombinedData, localQInfo)
@@ -102,7 +108,7 @@ class AnalyticsPoller(BaseWorkerThread):
             #set the uploadTime - should be the same for all docs
             uploadTime = int(time.time())
             logging.info("%s requests Data combined,\n uploading request data..." % len(combinedRequests))
-            requestDocs = convertToRequestCouchDoc(combinedRequests, fwjrInfoFromCouch,
+            requestDocs = convertToRequestCouchDoc(combinedRequests, fwjrInfoFromCouch, finishedTasks,
                                                    self.agentInfo, uploadTime, self.summaryLevel)
 
 
@@ -121,6 +127,6 @@ class AnalyticsPoller(BaseWorkerThread):
             logging.info("Agent data upload success\n %s request" % len(agentDocs))
 
         except Exception, ex:
-            logging.error("Error occured, will retry later:")
+            logging.error("Error occurred, will retry later:")
             logging.error(str(ex))
-            logging.error("Traceback: \n%s" % traceback.format_exc())
+            logging.error("Trace back: \n%s" % traceback.format_exc())

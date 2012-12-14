@@ -21,12 +21,10 @@ WMStats.GenericRequestsSummary = function (summaryStruct) {
              cooloff: {create: 0, submit: 0, job: 0},
              paused: {create: 0, submit: 0, job: 0},
          };
+    
 
     if (summaryStruct) {
-        for (var prop in summaryStruct) {
-            // only works with one level deep summary
-            this.summaryStruct[prop] = summaryStruct[prop];
-        };
+        this.summaryStruct = WMStats.Utils.cloneObj(summaryStruct);
     };
 };
 
@@ -40,8 +38,11 @@ WMStats.GenericRequestsSummary.prototype = {
         return this.summaryStruct;
     },
     
+    summaryStructUpdateFuction: null,
+    
     update: function(summary) {
-        WMStats.Utils.updateObj(this.summaryStruct, summary.summaryStruct);
+        WMStats.Utils.updateObj(this.summaryStruct, summary.summaryStruct, true, 
+                                this.summaryStructUpdateFuction);
         WMStats.Utils.updateObj(this.jobStatus, summary.jobStatus)
     },
     
@@ -113,7 +114,7 @@ WMStats.GenericRequests = function (noFilterFlag) {
     // number of requests in the data
     this._addJobs = WMStats.Utils.updateObj;
     this._filter = {};
-    this._filteredRequests = noFilterFlag || WMStats.Requests(true);
+    this._filteredRequests = null;
 }
 
 WMStats.GenericRequests.prototype = {
@@ -121,7 +122,7 @@ WMStats.GenericRequests.prototype = {
     _mapProperty: function (workflowData, property) {
         if (property == 'request_status') {
             return workflowData[property][workflowData[property].length - 1].status;
-        } 
+        }
         return workflowData[property];
     },
     
@@ -157,7 +158,9 @@ WMStats.GenericRequests.prototype = {
    _andFilter: function(base, filter) {
         var includeFlag = true;
         for (var property in filter) {
-            if (this._mapProperty(base, property) !== undefined &&
+            if (!filter[property]) {
+                continue;
+            }else if (this._mapProperty(base, property) !== undefined &&
                this._contains(this._mapProperty(base, property), filter[property])) {
                 continue;
             } else {
@@ -169,8 +172,17 @@ WMStats.GenericRequests.prototype = {
     },
     
     _contains: function(a, b) {
-        //TODO change to regular expression
-        return (!b || a.toLowerCase().indexOf(b.toLowerCase()) !== -1);
+        //TODO change to regular expression or handle numbers
+        if ((typeof a) === "string") return (a.toLowerCase().indexOf(b.toLowerCase()) !== -1);
+        else if ((typeof a) == "number") return (Number(b) == a);
+        else if (a instanceof Array) {
+            for (var i in a) {
+                if (this._contains(a[i], b)) return true;
+            }
+            return false;
+        } else {
+            alert("value need to be either number or string");
+        }
     },
     
     getFilter: function() {
@@ -213,7 +225,10 @@ WMStats.GenericRequests.prototype = {
     
     updateBulkRequests: function(docList) {
         for (var row in docList) {
-            this.updateRequest(docList[row].doc);
+            //not sure why there is null case
+            if (docList[row].doc) {
+                this.updateRequest(docList[row].doc);
+            }
         }
     },
 
@@ -225,6 +240,7 @@ WMStats.GenericRequests.prototype = {
                 filteredData[workflowName] =  requestData[workflowName];
             }
         }
+        this._filteredRequests = WMStats.Requests();
         this._filteredRequests.setDataByWorkflow(filteredData);
         return this._filteredRequests;
     },
@@ -348,7 +364,7 @@ WMStats.RequestsByKey = function (category, summaryFunc) {
             } else {
                 if (key == "NA" && _category == "sites" || _category == "tasks") {
                     // summary base shouldn't be higher level. since sites and tasks
-                    // has sub hierierky
+                    // has sub hierarchy
                     _updateData(key, {});
                 } else {
                     _updateData(key, dataByWorkflow[workflow]);
@@ -366,6 +382,12 @@ WMStats.RequestsByKey = function (category, summaryFunc) {
         }
     };
     
+    function getRequestData(key){
+        var requestData = WMStats.Requests();
+        requestData.setDataByWorkflow(_data[key].requests);
+        return requestData;
+    };
+    
     function getList(sortFunc) {
         var list = [];
         for (var key in _data) {
@@ -381,6 +403,7 @@ WMStats.RequestsByKey = function (category, summaryFunc) {
     return {
         categorize: categorize,
         getData: getData,
+        getRequestData: getRequestData,
         category: _category,
         getList: getList
     }
