@@ -62,7 +62,7 @@ WMStats.namespace('JobDetailList');
             htmlstr += "<li><b>Input Files:</b>"
             
             for (var i in jobDoc.inputfiles) {
-                htmlstr += jobDoc.inputfiles[i][lfn] + " ";
+                htmlstr += jobDoc.inputfiles[i].lfn + " ";
                 htmlstr +=  "\n "
             } 
             htmlstr += "</li>";
