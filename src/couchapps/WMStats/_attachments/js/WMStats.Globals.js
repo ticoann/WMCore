@@ -10,7 +10,7 @@ WMStats.Globals = function($){
 
     function getReqDetailPrefix () {
         if (_dbVariants[dbname] == "tier1") {
-            return "/reqmgr/view/details/";
+            return "https://cmsweb.cern.ch/reqmgr/view/details/";
         } else if (_dbVariants[dbname] == "analysis") {
             return "/an_reqmgr/view/details/";
         } else {
