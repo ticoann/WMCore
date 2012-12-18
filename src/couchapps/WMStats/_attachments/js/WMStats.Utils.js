@@ -118,11 +118,12 @@ WMStats.Utils.utcClock = function() {
         }
         return num
     }
-    var day = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    var day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     var now = new Date(); 
-    var utcString = now.getUTCFullYear() + "/" + now.getUTCMonth() + "/" + 
+    var month =  now.getUTCMonth() + 1;
+    var utcString = now.getUTCFullYear() + "/" + month + "/" + 
                     now.getUTCDate() + " (" + day[now.getUTCDay()] + ") " +
-                    appendZero(now.getUTCHours())  + ":" + appendZero(now.getUTCMinutes()) + ":" +
+                    appendZero(now.getUTCHours() + 1)  + ":" + appendZero(now.getUTCMinutes()) + ":" +
                     appendZero(now.getUTCSeconds()) + " UTC";
     return utcString;
 };

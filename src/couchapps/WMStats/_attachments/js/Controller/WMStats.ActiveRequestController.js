@@ -175,6 +175,7 @@ function getCategorizedData(category) {
     $(document).on('click', 'a.requestAlert', function() {
         var workflow = $(this).text();
         WMStats.JobSummaryModel.setRequest(workflow);
+        $(WMStats.Globals.Event).triggerHandler(E.AJAX_LOADING_START)
         WMStats.JobSummaryModel.retrieveData();
         $(this).addClass('reviewed');
        })
@@ -206,4 +207,9 @@ function getCategorizedData(category) {
         function(event, data) {
             $('#loading_page').hide();
         })
+        
+    $(WMStats.Globals.Event).on(E.AJAX_LOADING_START, 
+        function(event, data) {
+            $('#loading_page').show();
+        });
 })(jQuery);

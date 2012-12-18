@@ -75,3 +75,4 @@ WMStats.CustomEvents.LOADING_DIV_START = "C_9";
 WMStats.CustomEvents.LOADING_DIV_END = "C_10";
 
 WMStats.CustomEvents.HISTORY_LOADED = "C_11";
+WMStats.CustomEvents.AJAX_LOADING_START = "C_12";

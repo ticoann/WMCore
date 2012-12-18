@@ -45,13 +45,13 @@ WMStats.namespace("GenericController");
             event.preventDefault();
         }
     })
+    /*
     $('div').ajaxSend(function(){
-            alert("test");
             $(this).show();
         }).live("ajaxComplete", function(){
             $(this).hide();
     });
-    
+    */
     WMStats.GenericController.switchView = function (showSelector, hideSelectors) {
         if (!showSelector) {
             showSelector = WMStats.Env.View;

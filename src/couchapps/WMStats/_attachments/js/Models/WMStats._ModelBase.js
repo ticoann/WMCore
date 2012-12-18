@@ -22,7 +22,14 @@ WMStats._ModelBase.prototype = {
     
     dataReady: function(data) {
         this._data = this._dataStruct(data);
-        jQuery(WMStats.Globals.Event).triggerHandler(this._trigger, this._data)
+        if (this._trigger instanceof Array){
+            for (var i in this._trigger) {
+                jQuery(WMStats.Globals.Event).triggerHandler(this._trigger[i], this._data)
+            }
+        }else{
+            jQuery(WMStats.Globals.Event).triggerHandler(this._trigger, this._data)
+        }
+        
     },
 
     retrieveData: function () {

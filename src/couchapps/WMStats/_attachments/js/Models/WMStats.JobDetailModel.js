@@ -5,7 +5,7 @@ WMStats.JobDetailModel = new WMStats._ModelBase('jobsByStatusWorkflow', {},
 
 WMStats.JobDetailModel.setOptions = function(summary) {
     var startkey = null;
-    if ((typeof site) == "object") {
+    if ((typeof summary.site) == "object") {
         startkey = [summary.workflow, summary.task, summary.status, summary.exitCode]
     } else {
         startkey = [summary.workflow, summary.task, summary.status, summary.exitCode, summary.site]
@@ -16,4 +16,5 @@ WMStats.JobDetailModel.setOptions = function(summary) {
               'limit': 10};
 };
 
-WMStats.JobDetailModel.setTrigger(WMStats.CustomEvents.JOB_DETAIL_READY);
+WMStats.JobDetailModel.setTrigger([WMStats.CustomEvents.JOB_DETAIL_READY,
+                                  WMStats.CustomEvents.LOADING_DIV_END]);

@@ -63,6 +63,7 @@
             var nTds = $('td', currentElement);
             var requestName = $(nTds[2]).text();
             WMStats.JobSummaryModel.setRequest(requestName);
+            $(WMStats.Globals.Event).triggerHandler(E.AJAX_LOADING_START);
             WMStats.JobSummaryModel.retrieveData();
         },
         
@@ -95,6 +96,7 @@
             }
             summary.exitCode = Number($(nTds[3]).text());
             WMStats.JobDetailModel.setOptions(summary);
+            $(WMStats.Globals.Event).triggerHandler(E.AJAX_LOADING_START);
             WMStats.JobDetailModel.retrieveData();
         },
         
