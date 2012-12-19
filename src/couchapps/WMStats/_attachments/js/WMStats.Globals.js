@@ -20,7 +20,7 @@ WMStats.Globals = function($){
     };
     
     function getWorkloadSummaryPrefix () {
-        return "/couchdb/" + getWorkloadSummaryDB() + "/_design/WorkloadSummary/_show/histogramByWorkflow/";
+        return "https://cmsweb.cern.ch/couchdb/" + getWorkloadSummaryDB() + "/_design/WorkloadSummary/_show/histogramByWorkflow/";
     };
     
     function getWorkloadSummaryDB() {
