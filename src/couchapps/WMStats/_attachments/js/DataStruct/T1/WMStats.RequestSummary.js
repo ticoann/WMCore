@@ -5,11 +5,12 @@ WMStats.RequestsSummary = function() {
     var tier1Summary = {totalEvents: 0,
                         processedEvents: 0};
     var requestSummary = new WMStats.GenericRequestsSummary(tier1Summary);
-    
+
     requestSummary.createSummaryFromRequestDoc = function(doc) {
         var summary = WMStats.RequestsSummary();
         summary.summaryStruct.totalEvents = Number(this._get(doc, "input_events", 0));
         summary.summaryStruct.processedEvents = this._get(doc, "output_progress.0.events", 0);
+        summary.summaryStruct.progress = this.getAvgProgressSummary(doc)
         summary.summaryStruct.length = 1;
         summary.jobStatus = this._get(doc, 'status', {})
         //support legacy code which had cooloff jobs instead cooloff.create, cooloff.submit
@@ -19,7 +20,7 @@ WMStats.RequestsSummary = function() {
         }
         return summary;
     };
-    
+
     return requestSummary;
 }
 

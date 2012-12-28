@@ -45,7 +45,7 @@ function(doc) {
                   }
                   datasetData[datasetPath] = {'size': outputFile['size'], 
                                               'events': outputFile['events'],
-                                              'totalLummis': totalLumis}
+                                              'totalLumis': totalLumis}
               }
             }
           }

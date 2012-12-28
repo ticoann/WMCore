@@ -53,22 +53,8 @@
     <script src="js/loader.js" type='text/javascript'> </script>
 
     <!-- Globals is needed to be loaded before other library -->
-    <script src="js/WMStats.Globals.js" type='text/javascript'> </script>
-    <script src="js/WMStats.Utils.js" type='text/javascript'> </script>
-    <script src="js/WMStats.Couch.js" type='text/javascript'> </script>
-    
-    <!-- importing order is critical -->
-    <!-- data structure -->
-    <script src="js/DataStruct/import.js" type='text/javascript'> </script>
-    
-    <!-- table gui -->
-    <script src="js/Views/Controls/import.js" type='text/javascript'> </script>
-    <script src="js/Views/Tables/import.js" type='text/javascript'> </script>
-    <script src="js/Views/HTMLList/import.js" type='text/javascript'> </script>
-    <script src="js/Views/Graphs/import.js" type='text/javascript'> </script>
-    <!-- Overview.js will load javascripts corresponding to variant dynamically  -->
-    <script src="js/Models/import.js" type='text/javascript'> </script>
-    <script src="js/Controller/import.js" type='text/javascript'> </script>
+    <script src="js/minified/global.min.js" type='text/javascript'> </script>
+    <script src="js/import-all.min.js" type='text/javascript'> </script>
     <script>
     
     function applyTemplate(){

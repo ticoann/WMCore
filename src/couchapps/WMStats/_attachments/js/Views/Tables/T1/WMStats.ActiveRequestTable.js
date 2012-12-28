@@ -61,11 +61,20 @@ WMStats.ActiveRequestTable = function (requestData, containerDiv) {
             { "sDefaultContent": 0,
               "sTitle": "event progress", 
               "fnRender": function ( o, val ) {
-                           //TODO this might not needed since input_events should be number not string. (for the regacy record)
+                           //TODO this might not needed since input_events should be number not string. (for the legacy record)
                            var inputEvents =Number(requestData.getDataByWorkflow(o.aData.workflow, "input_events", 1)) || 1;
-                           var result = Number(requestData.getDataByWorkflow(o.aData.workflow, "output_progress.0.events", 0)) /
-                                      (inputEvents) * 100
-                            return (result.toFixed(1) + "%");
+                           var outputEvents = requestData.getSummary(o.aData.workflow).getAvgEvents();
+                           var result = (outputEvents / inputEvents) * 100
+                           return (result.toFixed(1) + "%");
+                          }
+            },
+            { "sDefaultContent": 0,
+              "sTitle": "lumi progress", 
+              "fnRender": function ( o, val ) {
+                           var inputLumis =Number(requestData.getDataByWorkflow(o.aData.workflow, "input_lumis", 1)) || 1;
+                           var outputLumis = requestData.getSummary(o.aData.workflow).getAvgLumis();
+                           var result = (outputLumis / inputLumis) * 100
+                           return (result.toFixed(1) + "%");
                           }
             },
             { "sDefaultContent": 0,

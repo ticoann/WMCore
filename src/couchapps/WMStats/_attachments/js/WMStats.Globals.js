@@ -10,7 +10,7 @@ WMStats.Globals = function($){
 
     function getReqDetailPrefix () {
         if (_dbVariants[dbname] == "tier1") {
-            return "https://cmsweb.cern.ch/reqmgr/view/details/";
+            return "/reqmgr/view/details/";
         } else if (_dbVariants[dbname] == "analysis") {
             return "/an_reqmgr/view/details/";
         } else {
@@ -20,7 +20,7 @@ WMStats.Globals = function($){
     };
     
     function getWorkloadSummaryPrefix () {
-        return "https://cmsweb.cern.ch/couchdb/" + getWorkloadSummaryDB() + "/_design/WorkloadSummary/_show/histogramByWorkflow/";
+        return "/couchdb/" + getWorkloadSummaryDB() + "/_design/WorkloadSummary/_show/histogramByWorkflow/";
     };
     
     function getWorkloadSummaryDB() {

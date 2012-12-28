@@ -235,7 +235,7 @@ class WMAgentDBData():
             finishedSubs[item['workflow']].setdefault('tasks', {})
             # Assumption: task has only one job type.
             finishedSubs[item['workflow']]['tasks'][item['task']] = {}
-            finishedSubs[item['workflow']]['tasks'][item['task']]['jobtype'] = item['jobType']
+            finishedSubs[item['workflow']]['tasks'][item['task']]['jobtype'] = item['jobtype']
             finishedSubs[item['workflow']]['tasks'][item['task']]['subscription_status'] = {}
             finishedSubs[item['workflow']]['tasks'][item['task']]['subscription_status']['finished'] = item['finished']
             finishedSubs[item['workflow']]['tasks'][item['task']]['subscription_status']['open'] = item['open']
@@ -298,8 +298,10 @@ def convertToRequestCouchDoc(combinedRequests, fwjrInfo, finishedTasks,
 
         doc['timestamp'] = uploadTime
         #doc['output_progress'] = fwjrInfo.get(request, [])
-        doc['tasks'] = combineAnalyticsData(doc['tasks'], fwjrInfo[request]['tasks'])
-        doc['tasks'] = combineAnalyticsData(doc['tasks'], finishiedTasks[request]['tasks'])
+        if request in fwjrInfo:
+            doc['tasks'] = combineAnalyticsData(doc['tasks'], fwjrInfo[request]['tasks'])
+        if request in finishedTasks:
+            doc['tasks'] = combineAnalyticsData(doc['tasks'], finishedTasks[request]['tasks'])
         requestDocs.append(doc)
     return requestDocs
 

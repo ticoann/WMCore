@@ -34,8 +34,17 @@ WMStats.CampaignSummaryTable = function (data, containerDiv) {
               "sTitle": "event progress", 
               "mDataProp": function (source, type, val) { 
                            //TODO this might not needed since input_events should be number not string. (for the legacy record)
-                           var totalEvents = source.summary.summaryStruct.totalEvents || 1;
-                           var result = source.summary.summaryStruct.processedEvents / totalEvents * 100
+                            var totalEvents = source.summary.summaryStruct.totalEvents || 1;
+                            var result = source.summary.getAvgEvents() / totalEvents * 100
+                            return (result.toFixed(1) + "%");
+                          }
+            },
+            { "sDefaultContent": 0,
+              "sTitle": "lumi progress", 
+              "mDataProp": function (source, type, val) { 
+                           //TODO this might not needed since input_events should be number not string. (for the legacy record)
+                            var totalLumis = source.summary.summaryStruct.totalLumis || 1;
+                            var result = source.summary.getAvgLumis() / totalLumis * 100
                             return (result.toFixed(1) + "%");
                           }
             },

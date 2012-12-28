@@ -30,7 +30,7 @@ WMStats.Utils.updateObj = function (baseObj, additionObj, createFlag, updateFunc
             }
         } else {
             if (typeof(baseObj[field]) == "object"){
-                WMStats.Utils.updateObj(baseObj[field], additionObj[field], updateFunc);
+                WMStats.Utils.updateObj(baseObj[field], additionObj[field], createFlag, updateFunc);
             } else {
                 if (updateFunc instanceof Function){
                     updateFunc(baseObj, additionObj, field);

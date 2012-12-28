@@ -7,7 +7,7 @@ WMStats.namespace('RequestSummaryList');
         htmlstr += "<ul>";
         htmlstr += "<li><b>requests:</b> " + summary.summaryStruct.length + "</li>";
         htmlstr += "<li><b>total events:</b> " + summary.summaryStruct.totalEvents + "</li>";
-        htmlstr += "<li><b>processed events:</b> " + summary.summaryStruct.processedEvents + "</li>";
+        htmlstr += "<li><b>processed events:</b> " + summary.getAvgEvents() + "</li>";
         htmlstr += "<li><b>created:</b> " + summary.getWMBSTotalJobs() + "</li>";
         htmlstr += "<li><b>cooloff:</b> " + summary.getTotalCooloff() + "</li>";
         htmlstr += "<li><b>success:</b> " + summary.getJobStatus('success') + "</li>";
