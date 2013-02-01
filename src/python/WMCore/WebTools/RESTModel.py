@@ -5,7 +5,7 @@
 """
 Rest Model abstract implementation
 """
-
+from functools import wraps
 from WMCore.Lexicon import check
 from WMCore.WebTools.WebAPI import WebAPI
 from cherrypy import request, HTTPError
@@ -169,6 +169,7 @@ class RESTModel(WebAPI):
 
         if not self.methods.has_key(verb):
             self.methods[verb] = {}
+        @wraps(function)
         def wrapper(*input_args, **input_kwargs):
             if secured:
                 # set up security
@@ -241,8 +242,8 @@ class RESTModel(WebAPI):
             else:
                 if len(input_args):
                     input_data[a] = input_args.pop(0)
-        if input_kwargs: 
-            raise HTTPError(400, 'Invalid input: Input arguments failed sanitation.') 
+        if input_kwargs:
+            raise HTTPError(400, 'Invalid input: Input arguments failed sanitation.')
         self.debug('%s raw data: %s' % (method, {'args': input_args, 'kwargs': input_kwargs}))
         self.debug('%s sanitised input_data: %s' % (method, input_data))
         return self._validate_input(input_data, verb, method)

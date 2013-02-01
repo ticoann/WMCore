@@ -30,6 +30,7 @@ class DataProcessingTest(unittest.TestCase):
         self.testInit.setDatabaseConnection()
         self.testInit.setSchema(customModules = ["WMCore.WMBS"],
                                 useDefault = False)
+        self.testDir = self.testInit.generateWorkDir()
         return
 
     def tearDown(self):
@@ -39,6 +40,7 @@ class DataProcessingTest(unittest.TestCase):
         Clear out the database.
         """
         self.testInit.clearDatabase()
+        self.testInit.delWorkDir()
         return
 
     def testDataProcessing(self):
@@ -46,13 +48,15 @@ class DataProcessingTest(unittest.TestCase):
         _testDataProcessing_
 
         Create a data processing workflow and verify it installs into WMBS
-        correctly.
+        correctly. Check that we can drop an output module.
         """
-        testWorkload = dataProcessingWorkload("TestWorkload", getTestArguments())
+        testArgs = getTestArguments()
+        testArgs['TransientOutputModules'] = ['RECOoutput']
+        testWorkload = dataProcessingWorkload("TestWorkload", testArgs)
         testWorkload.setSpecUrl("somespec")
         testWorkload.setOwnerDetails("sfoulkes@fnal.gov", "DMWM")
-        
-        testWMBSHelper = WMBSHelper(testWorkload, "DataProcessing", "SomeBlock")
+
+        testWMBSHelper = WMBSHelper(testWorkload, "DataProcessing", "SomeBlock", cachepath = self.testDir)
         testWMBSHelper.createTopLevelFileset()
         testWMBSHelper.createSubscription(testWMBSHelper.topLevelTask, testWMBSHelper.topLevelFileset)
 
@@ -71,8 +75,12 @@ class DataProcessingTest(unittest.TestCase):
             mergedOutput.loadData()
             unmergedOutput.loadData()
 
-            self.assertEqual(mergedOutput.name, "/TestWorkload/DataProcessing/DataProcessingMerge%s/merged-Merged" % goldenOutputMod,
-                             "Error: Merged output fileset is wrong: %s" % mergedOutput.name)
+            if goldenOutputMod in testArgs["TransientOutputModules"]:
+                self.assertEqual(mergedOutput.name, "/TestWorkload/DataProcessing/unmerged-%s" % goldenOutputMod,
+                                 "Error: Merged output fileset is wrong: %s" % mergedOutput.name)
+            else:
+                self.assertEqual(mergedOutput.name, "/TestWorkload/DataProcessing/DataProcessingMerge%s/merged-Merged" % goldenOutputMod,
+                                 "Error: Merged output fileset is wrong: %s" % mergedOutput.name)
             self.assertEqual(unmergedOutput.name, "/TestWorkload/DataProcessing/unmerged-%s" % goldenOutputMod,
                              "Error: Unmerged output fileset is wrong.")
 
@@ -87,6 +95,9 @@ class DataProcessingTest(unittest.TestCase):
                          "Error: LogArchive output fileset is wrong.")
 
         for goldenOutputMod in goldenOutputMods:
+            if goldenOutputMod in testArgs["TransientOutputModules"]:
+                # No merge for this output module
+                continue
             mergeWorkflow = Workflow(name = "TestWorkload",
                                      task = "/TestWorkload/DataProcessing/DataProcessingMerge%s" % goldenOutputMod)
             mergeWorkflow.load()
@@ -113,7 +124,7 @@ class DataProcessingTest(unittest.TestCase):
             self.assertEqual(logArchOutput.name, "/TestWorkload/DataProcessing/DataProcessingMerge%s/merged-logArchive" % goldenOutputMod,
                              "Error: LogArchive output fileset is wrong: %s" % logArchOutput.name)
             self.assertEqual(unmergedLogArchOutput.name, "/TestWorkload/DataProcessing/DataProcessingMerge%s/merged-logArchive" % goldenOutputMod,
-                             "Error: LogArchive output fileset is wrong.")            
+                             "Error: LogArchive output fileset is wrong.")
 
         topLevelFileset = Fileset(name = "TestWorkload-DataProcessing-SomeBlock")
         topLevelFileset.loadData()
@@ -130,14 +141,8 @@ class DataProcessingTest(unittest.TestCase):
         unmergedReco.loadData()
         recoMergeWorkflow = Workflow(name = "TestWorkload",
                                      task = "/TestWorkload/DataProcessing/DataProcessingMergeRECOoutput")
-        recoMergeWorkflow.load()
-        mergeSubscription = Subscription(fileset = unmergedReco, workflow = recoMergeWorkflow)
-        mergeSubscription.loadData()
-
-        self.assertEqual(mergeSubscription["type"], "Merge",
-                         "Error: Wrong subscription type.")
-        self.assertEqual(mergeSubscription["split_algo"], "ParentlessMergeBySize",
-                         "Error: Wrong split algo.")
+        # No merge workflow should exist in WMBS
+        self.assertRaises(IndexError, recoMergeWorkflow.load)
 
         unmergedAlca = Fileset(name = "/TestWorkload/DataProcessing/unmerged-ALCARECOoutput")
         unmergedAlca.loadData()
@@ -150,7 +155,7 @@ class DataProcessingTest(unittest.TestCase):
         self.assertEqual(mergeSubscription["type"], "Merge",
                          "Error: Wrong subscription type.")
         self.assertEqual(mergeSubscription["split_algo"], "ParentlessMergeBySize",
-                         "Error: Wrong split algo.")        
+                         "Error: Wrong split algo.")
 
         for procOutput in ["RECOoutput", "ALCARECOoutput"]:
             unmerged = Fileset(name = "/TestWorkload/DataProcessing/unmerged-%s" % procOutput)
@@ -179,19 +184,6 @@ class DataProcessingTest(unittest.TestCase):
         self.assertEqual(logCollectSub["split_algo"], "MinFileBased",
                          "Error: Wrong split algo.")
 
-        procLogCollect = Fileset(name = "/TestWorkload/DataProcessing/DataProcessingMergeRECOoutput/merged-logArchive")
-        procLogCollect.loadData()
-        procLogCollectWorkflow = Workflow(name = "TestWorkload",
-                                          task = "/TestWorkload/DataProcessing/DataProcessingMergeRECOoutput/DataProcessingRECOoutputMergeLogCollect")
-        procLogCollectWorkflow.load()
-        logCollectSub = Subscription(fileset = procLogCollect, workflow = procLogCollectWorkflow)
-        logCollectSub.loadData()
-
-        self.assertEqual(logCollectSub["type"], "LogCollect",
-                         "Error: Wrong subscription type.")
-        self.assertEqual(logCollectSub["split_algo"], "MinFileBased",
-                         "Error: Wrong split algo.")
-
         procLogCollect = Fileset(name = "/TestWorkload/DataProcessing/DataProcessingMergeALCARECOoutput/merged-logArchive")
         procLogCollect.loadData()
         procLogCollectWorkflow = Workflow(name = "TestWorkload",
@@ -203,7 +195,7 @@ class DataProcessingTest(unittest.TestCase):
         self.assertEqual(logCollectSub["type"], "LogCollect",
                          "Error: Wrong subscription type.")
         self.assertEqual(logCollectSub["split_algo"], "MinFileBased",
-                         "Error: Wrong split algo.")                
+                         "Error: Wrong split algo.")
 
         return
 

@@ -3,14 +3,18 @@
     Mocked DBS interface for Start Policy unit tests
 """
 
-from DBSAPI.dbsApi import DbsApi
 from WMCore.Services.DBS.DBSErrors import DBSReaderError
 
 class _MockDBSApi():
     """Mock dbs api"""
     def __init__(self, args):
         # just make sure args value complies with dbs args
-        DbsApi(args)
+        try:
+            from DBSAPI.dbsApi import DbsApi
+            DbsApi(args)
+        except ImportError:
+            # No dbsApi available, carry on
+            pass
         self.args = args
 
     def getServerUrl(self):
@@ -20,6 +24,16 @@ class _MockDBSApi():
         """getServerInfo"""
         return {'InstanceName' : 'GLOBAL'}
 
+    def listFiles(self, datasetPath, retriveList):
+        res = []
+        dbg = DataBlockGenerator()
+        for block in dbg.getBlocks(datasetPath):
+            files = dbg.getFiles(block['Name'])
+            for f in files:
+                f['Block'] = block
+                res.append(f)
+
+        return res
 
 #//     - ignore some params in dbs spec - silence pylint warnings
 # pylint: disable-msg=W0613,R0201
@@ -33,7 +47,7 @@ class DBSReader:
         self.dataBlocks = DataBlockGenerator()
         args = { "url" : url, "level" : 'ERROR', "version" : 'DBS_2_0_9'}
         self.dbs = _MockDBSApi(args)
-        
+
     def getFileBlocksInfo(self, dataset, onlyClosedBlocks = True,
                           blockName = '*', locations = True):
 
@@ -53,6 +67,16 @@ class DBSReader:
                                                self.listFileBlockLocation(block['Name'])]
         return blocks
 
+    def lfnsInBlock(self, fileBlockName):
+        """
+        _lfnsInBlock_
+        Get a fake list of LFNs for the block
+        """
+
+        files = self.listFilesInBlock(fileBlockName)
+
+        return [x['LogicalFileName'] for x in files]
+
     def listFileBlocks(self, dataset, onlyClosedBlocks = False,
                        blockName = '*'):
         """Get fake block names"""
@@ -64,9 +88,9 @@ class DBSReader:
         """Fake locations"""
         return self.dataBlocks.getLocation(block)
 
-    def listFilesInBlock(self, block):
+    def listFilesInBlock(self, fileBlockName):
         """Fake files"""
-        return self.dataBlocks.getFiles(block)
+        return self.dataBlocks.getFiles(fileBlockName)
 
     def listFilesInBlockWithParents(self, block):
         return self.dataBlocks.getFiles(block, True)
@@ -107,19 +131,43 @@ class DBSReader:
 
     def listRuns(self, dataset = None, block = None):
         def getRunsFromBlock(b):
-            results = []
+            results = set()
             for x in self.dataBlocks.getFiles(b):
-                results.extend([y['RunNumber'] for y in x['LumiList']])
+                results = results.union([y['RunNumber'] for y in x['LumiList']])
+            return list(results)
+
+        if block:
+            return getRunsFromBlock(block)
+        if dataset:
+            runs = set()
+            for block in self.dataBlocks.getBlocks(dataset):
+                runs = runs.union(getRunsFromBlock(block['Name']))
+            return list(runs)
+        return None
+
+    def listRunLumis(self, dataset = None, block = None):
+        def getRunsFromBlock(b):
+            results = {}
+            for x in self.dataBlocks.getFiles(b):
+                for y in x['LumiList']:
+                    if y['RunNumber'] not in results:
+                        results[y['RunNumber']] = 0
+                    results[y['RunNumber']] += 1
             return results
 
         if block:
             return getRunsFromBlock(block)
         if dataset:
-            runs = []
+            runs = {}
             for block in self.dataBlocks.getBlocks(dataset):
-                runs.extend(getRunsFromBlock(block['Name']))
+                updateRuns = getRunsFromBlock(block['Name'])
+                for run in updateRuns:
+                    if run not in runs:
+                        runs[run] = 0
+                    runs[run] += updateRuns[run]
             return runs
         return None
+
 
 
     def getDBSSummaryInfo(self, dataset=None, block=None):

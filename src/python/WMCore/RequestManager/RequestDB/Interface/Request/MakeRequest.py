@@ -15,7 +15,8 @@ import WMCore.RequestManager.RequestDB.Connection as DBConnect
 
 
 
-def createRequest(hnUser, groupName, requestName, requestType, workflowName, prep_id):
+def createRequest(hnUser, groupName, requestName, requestType, workflowName,
+                  prep_id, reqBasePriority):
     """
     _createRequest_
 
@@ -80,7 +81,8 @@ def createRequest(hnUser, groupName, requestName, requestType, workflowName, pre
             request_status = statusMap['new'],
             association_id = groups[groupName],
             workflow = workflowName,
-            prep_id = prep_id
+            prep_id = prep_id,
+            reqBasePriority = reqBasePriority
             )
     except Exception, ex:
         msg = "Unable to create request named %s\n" % requestName
@@ -140,7 +142,7 @@ def associateSoftware(requestName, softwareName):
     Software must be registered in the DB
 
     """
-
+    
     factory = DBConnect.getConnection()
     requestId = factory(classname = "Request.ID")
 
@@ -194,5 +196,3 @@ def updateRequestSize(requestName, reqEventsSize, reqFilesSize = None, reqSizeOf
     updateSize.execute(reqId, reqEventsSize, reqFilesSize, reqSizeOfEvent)
 
     return
-
-

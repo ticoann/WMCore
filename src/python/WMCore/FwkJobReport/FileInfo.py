@@ -102,12 +102,15 @@ class FileInfo:
             return
         if not os.path.isabs(pfn):
             # Get an absolute path
-            pfn = os.path.abspath(pfn) 
+            pfn = os.path.abspath(pfn)
 
 
         # Now we know it, we better set it
         setattr(fileReport, 'pfn', pfn)
-
+        
+        # Set default of merged as false
+        setattr(fileReport, 'merged', False)
+        
         return self.processFile(filename = pfn,
                                 fileReport = fileReport,
                                 step = step,
@@ -164,7 +167,7 @@ class FileInfo:
             mergedLFNBase.rstrip('/')
             newLFN = os.path.join(mergedLFNBase, os.path.basename(lfn))
             setattr(fileReport, 'lfn', newLFN)
-        
+
 
 
 
@@ -190,4 +193,3 @@ class FileInfo:
 
 
         self.siteCfg = loadSiteLocalConfig()
-

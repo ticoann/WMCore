@@ -41,26 +41,26 @@ class EventBasedTest(unittest.TestCase):
         self.testInit.setDatabaseConnection()
         self.testInit.setSchema(customModules = ["WMCore.WMBS"],
                                 useDefault = False)
-        
+
         myThread = threading.currentThread()
         daofactory = DAOFactory(package = "WMCore.WMBS",
                                 logger = myThread.logger,
                                 dbinterface = myThread.dbi)
-        
+
         locationAction = daofactory(classname = "Locations.New")
         locationAction.execute(siteName = 's1', seName = "somese.cern.ch")
         locationAction.execute(siteName = 's2', seName = "otherse.cern.ch")
-        
+
         self.multipleFileFileset = Fileset(name = "TestFileset1")
         self.multipleFileFileset.create()
-        parentFile = File('/parent/lfn/', size = 1000, events = 100, 
-                          locations = set(["somese.cern.ch"])) 
-        parentFile.create() 
+        parentFile = File('/parent/lfn/', size = 1000, events = 100,
+                          locations = set(["somese.cern.ch"]))
+        parentFile.create()
         for i in range(10):
             newFile = File(makeUUID(), size = 1000, events = 100,
                            locations = set(["somese.cern.ch"]))
             newFile.create()
-            newFile.addParent(lfn = parentFile['lfn']) 
+            newFile.addParent(lfn = parentFile['lfn'])
             self.multipleFileFileset.addFile(newFile)
         self.multipleFileFileset.commit()
 
@@ -114,7 +114,7 @@ class EventBasedTest(unittest.TestCase):
         Clear out WMBS.
         """
         self.testInit.clearDatabase()
-        return        
+        return
 
     def generateFakeMCFile(self, numEvents = 100, firstEvent = 1,
                            lastEvent = 100, firstLumi = 1, lastLumi = 10,
@@ -162,9 +162,9 @@ class EventBasedTest(unittest.TestCase):
         job = jobGroups[0].jobs.pop()
 
         self.assertEqual(job.getFiles(type = "lfn"),  ["/some/file/name"])
-        
-        self.assertEqual(job["mask"].getMaxEvents(), 100)
-        
+
+        self.assertEqual(job["mask"].getMaxEvents(), None)
+
         self.assertEqual(job["mask"]["FirstEvent"], 0)
 
         return
@@ -175,12 +175,13 @@ class EventBasedTest(unittest.TestCase):
 
         Test event based job splitting when the number of events per job is
         greater than the number of events in the input file.
+        Since the file has less events than the splitting, the job goes without a mask.
         """
         splitter = SplitterFactory()
         jobFactory = splitter(package = "WMCore.WMBS", subscription = self.singleFileSubscription)
-        
+
         jobGroups = jobFactory(events_per_job = 1000)
-        
+
         self.assertEqual(len(jobGroups), 1)
 
         self.assertEqual(len(jobGroups[0].jobs), 1)
@@ -188,10 +189,10 @@ class EventBasedTest(unittest.TestCase):
         job = jobGroups[0].jobs.pop()
 
         self.assertEqual(job.getFiles(type = "lfn"), ["/some/file/name"])
-        
-        self.assertEqual(job["mask"].getMaxEvents(), 100)
-        
-        self.assertEqual(job["mask"]["FirstEvent"], 0)
+
+        self.assertEqual(job["mask"].getMaxEvents(), None)
+
+        self.assertEqual(job["mask"]["FirstEvent"], None)
 
         return
 
@@ -200,25 +201,23 @@ class EventBasedTest(unittest.TestCase):
         _test50EventSplit_
 
         Test event based job splitting when the number of events per job is
-        50, this should result in two jobs.        
+        50, this should result in two jobs.
         """
         splitter = SplitterFactory()
 
         jobFactory = splitter(package = "WMCore.WMBS", subscription = self.singleFileSubscription)
-        
+
         jobGroups = jobFactory(events_per_job = 50)
-        
+
         self.assertEqual(len(jobGroups), 1)
 
         self.assertEqual(len(jobGroups[0].jobs), 2)
 
         for job in jobGroups[0].jobs:
             self.assertEqual(job.getFiles(type = "lfn"), ["/some/file/name"])
-        
-            self.assertEqual(job["mask"].getMaxEvents(), 50)
-        
-            assert job["mask"]["FirstEvent"] in [0, 50], \
-                   "ERROR: Job's first event is incorrect."
+
+            self.assertTrue((job["mask"].getMaxEvents() == 50 and job["mask"]["FirstEvent"] == 0) or \
+                            (job["mask"].getMaxEvents() is None and job["mask"]["FirstEvent"] == 50))
 
         return
 
@@ -227,26 +226,23 @@ class EventBasedTest(unittest.TestCase):
         _test99EventSplit_
 
         Test event based job splitting when the number of events per job is
-        99, this should result in two jobs.        
+        99, this should result in two jobs. Last job shouldn't have a maximum
+        number of events, let it run until the end of the file.
         """
         splitter = SplitterFactory()
         jobFactory = splitter(package = "WMCore.WMBS", subscription = self.singleFileSubscription)
-        
+
         jobGroups = jobFactory(events_per_job = 99)
-        
+
         self.assertEqual(len(jobGroups), 1)
 
         self.assertEqual(len(jobGroups[0].jobs), 2)
 
         for job in jobGroups[0].jobs:
             self.assertEqual(job.getFiles(type = "lfn"), ["/some/file/name"])
-        
-            self.assertTrue(job["mask"].getMaxEvents() == 99 or \
-                            job["mask"].getMaxEvents() == 1)
-        
-            assert job["mask"]["FirstEvent"] in [0, 99], \
-                   "ERROR: Job's first event is incorrect."
 
+            self.assertTrue((job["mask"].getMaxEvents() == 99 and job["mask"]["FirstEvent"] == 0) or \
+                            (job["mask"].getMaxEvents() is None and job["mask"]["FirstEvent"] == 99))
         return
 
     def test100EventMultipleFileSplit(self):
@@ -264,17 +260,17 @@ class EventBasedTest(unittest.TestCase):
         self.assertEqual(len(jobGroups), 1)
 
         self.assertEqual(len(jobGroups[0].jobs), 10)
-        
+
         for job in jobGroups[0].jobs:
             self.assertEqual(len(job.getFiles(type = "lfn")), 1)
-        
-            self.assertEqual(job["mask"].getMaxEvents(), 100)
-        
+
+            self.assertEqual(job["mask"].getMaxEvents(), None)
+
             assert job["mask"]["FirstEvent"] == 0, \
                    "ERROR: Job's first event is incorrect."
 
         return
-    
+
     def test50EventMultipleFileSplit(self):
         """
         _test50EventMultipleFileSplit_
@@ -290,12 +286,12 @@ class EventBasedTest(unittest.TestCase):
         self.assertEqual(len(jobGroups), 1)
 
         self.assertEqual(len(jobGroups[0].jobs), 20)
-        
+
         for job in jobGroups[0].jobs:
-            self.assertEqual(len(job.getFiles(type = "lfn")), 1)        
-            self.assertEqual(job["mask"].getMaxEvents(), 50)
-            assert job["mask"]["FirstEvent"] in [0, 50], \
-                   "ERROR: Job's first event is incorrect."
+            self.assertEqual(len(job.getFiles(type = "lfn")), 1)
+            self.assertTrue((job["mask"].getMaxEvents() == 50 and job["mask"]["FirstEvent"] == 0) or \
+                            (job["mask"].getMaxEvents() is None and job["mask"]["FirstEvent"] == 50))
+
 
         return
 
@@ -305,7 +301,8 @@ class EventBasedTest(unittest.TestCase):
 
         Test job splitting into 150 event jobs when the input subscription has
         more than one file available.  This test verifies that the job splitting
-        code will put at most one file in a job.
+        code will put at most one file in a job. Since every job has less events
+        than the maximum. the job goes without a mask.
         """
         splitter = SplitterFactory()
         jobFactory = splitter(package = "WMCore.WMBS", subscription = self.multipleFileSubscription)
@@ -316,10 +313,10 @@ class EventBasedTest(unittest.TestCase):
         self.assertEqual(len(jobGroups[0].jobs), 10)
         self.assertEqual(len(jobGroups[0].jobs[0].getFiles(type = "lfn")), 1)
         self.assertEqual(len(jobGroups[0].jobs[6].getFiles(type = "lfn")), 1)
-        
+
         for job in jobGroups[0].jobs:
-            self.assertEqual(job["mask"].getMaxEvents(), 100)
-            self.assertEqual(job["mask"]["FirstEvent"], 0)
+            self.assertEqual(job["mask"].getMaxEvents(), None)
+            self.assertEqual(job["mask"]["FirstEvent"], None)
 
         return
 
@@ -340,12 +337,12 @@ class EventBasedTest(unittest.TestCase):
 
         self.assertEqual(len(jobGroups[0].jobs), 5)
         self.assertEqual(len(jobGroups[1].jobs), 5)
-        
+
         for job in jobGroups[0].jobs:
             self.assertEqual(len(job.getFiles(type = "lfn")), 1)
-        
-            self.assertEqual(job["mask"].getMaxEvents(), 100)
-        
+
+            self.assertEqual(job["mask"].getMaxEvents(), None)
+
             assert job["mask"]["FirstEvent"] == 0, \
                    "ERROR: Job's first event is incorrect."
 
@@ -401,14 +398,13 @@ class EventBasedTest(unittest.TestCase):
         self.assertEqual(len(jobGroups), 1)
 
         self.assertEqual(len(jobGroups[0].jobs), 20)
-        
+
         for job in jobGroups[0].jobs:
-            self.assertEqual(len(job.getFiles(type = "lfn")), 1)        
-            self.assertEqual(job["mask"].getMaxEvents(), 50)
-            self.assertTrue(job["mask"]["FirstEvent"] in [0, 50],
-                            "ERROR: Job's first event is incorrect: %i" % job['mask']['FirstEvent'])
-            for f in job['input_files']: 
-                self.assertEqual(len(f['parents']), 1) 
+            self.assertEqual(len(job.getFiles(type = "lfn")), 1)
+            self.assertTrue((job["mask"].getMaxEvents() == 50 and job["mask"]["FirstEvent"] == 0) or \
+                            (job["mask"].getMaxEvents() is None and job["mask"]["FirstEvent"] == 50))
+            for f in job['input_files']:
+                self.assertEqual(len(f['parents']), 1)
                 self.assertEqual(list(f['parents'])[0]['lfn'], '/parent/lfn/')
 
         return

@@ -15,6 +15,7 @@ import time
 import re
 import urllib
 import logging
+from WMCore.Agent.Daemon.Details import Details
 from WMCore.Database.CMSCouch import CouchServer
 from WMCore.DAOFactory import DAOFactory
 from WMCore.Lexicon import splitCouchServiceURL, sanitizeURL
@@ -30,11 +31,11 @@ class LocalCouchDBData():
         self.jobCouchDB = CouchServer(self.couchURLBase).connectDatabase(self.dbName + "/jobs", False)
         self.fwjrsCouchDB = CouchServer(self.couchURLBase).connectDatabase(self.dbName + "/fwjrs", False)
         self.summaryLevel = summaryLevel
-        
+
     def getJobSummaryByWorkflowAndSite(self):
         """
         gets the job status information by workflow
-    
+
         example
         {"rows":[
 
@@ -43,7 +44,7 @@ class LocalCouchDBData():
             {"key":['request_name1", 'task_name2', "running", "siteA"],"value":100},
             {"key":['request_name1", 'task_name2', "success", "siteB"],"value":100}\
          ]}
-         and convert to 
+         and convert to
          {'request_name1': {'queue_first': { 'siteA': 100}}
           'request_name1': {'queue_first': { 'siteB': 100}}
          }
@@ -56,7 +57,7 @@ class LocalCouchDBData():
          }
         """
         options = {"group": True, "stale": "ok"}
-        # site of data should be relatively small (~1M) for put in the memory 
+        # site of data should be relatively small (~1M) for put in the memory
         # If not, find a way to stream
         results = self.jobCouchDB.loadView("JobDump", "jobStatusByWorkflowAndSite",
                                         options)
@@ -67,47 +68,119 @@ class LocalCouchDBData():
             for x in results.get('rows', []):
                 data.setdefault(x['key'][0], {})
                 data[x['key'][0]].setdefault('tasks', {})
-                data[x['key'][0]]['tasks'].setdefault(x['key'][1], {}) 
+                data[x['key'][0]]['tasks'].setdefault(x['key'][1], {})
                 data[x['key'][0]]['tasks'][x['key'][1]].setdefault(x['key'][2], {})
-                data[x['key'][0]]['tasks'][x['key'][1]][x['key'][2]][x['key'][3]] = x['value'] 
+                data[x['key'][0]]['tasks'][x['key'][1]][x['key'][2]][x['key'][3]] = x['value']
         else:
             for x in results.get('rows', []):
                 data.setdefault(x['key'][0], {})
-                data[x['key'][0]].setdefault(x['key'][2], {}) 
+                data[x['key'][0]].setdefault(x['key'][2], {})
                 #data[x['key'][0]][x['key'][1]].setdefault(x['key'][2], {})
-                data[x['key'][0]][x['key'][2]][x['key'][3]] = x['value'] 
+                data[x['key'][0]][x['key'][2]][x['key'][3]] = x['value']
         logging.info("Found %i requests" % len(data))
         return data
-
-    def getEventSummaryByWorkflow(self):
+    
+    def getJobPerformanceByTaskAndSite(self):
         """
         gets the job status information by workflow
     
         example
         {"rows":[
-            {"key":['request_name1", "/test/output_dataset1"],
-             "value": {size: 20286644784714, events: 38938099, count: 6319, 
-                       dataset: "/test/output_dataset1"}},
-            {"key":['request_name1", "/test/output_dataset2"],
-             "value": {size: 20286644784714, events: 38938099, count: 6319, 
-                       dataset: "/test/output_dataset2"}},
-            {"key":['request_name1", "/test/output_dataset3"],
-             "value": {size: 20286644784714, events: 38938099, count: 6319, 
-                       dataset: "/test/output_dataset3"}},
-            {"key":['request_name1", "/test/output_dataset4"],
-             "value": {size: 20286644784714, events: 38938099, count: 6319, 
-                       dataset: "/test/output_dataset4"}},
+
+            {"key":['request_name1", 'task_name1', "siteA"],
+             "value": {wrappedTotalJobTime: 1612, 
+                       cmsRunCPUPerformance: {totalJobCPU: 20.132924000000003, 
+                                              totalJobTime: 421.0489, 
+                                              totalEventCPU: 4.064402}, 
+                       inputEvents: 0, 
+                       dataset: {/TestLHE/TEST_Subscriptions_WMA-Test-v1/GEN: 
+                                             {size: 5093504, events: 10000,
+                                              totalLumis: 100}}}},
+            {"key":['request_name1", 'task_name2', "siteA"],
+             "value":{wrappedTotalJobTime: 1612, 
+                       cmsRunCPUPerformance: {totalJobCPU: 20.132924000000003, 
+                                              totalJobTime: 421.0489, 
+                                              totalEventCPU: 4.064402}, 
+                       inputEvents: 0, 
+                       dataset: {/TestLHE/TEST_Subscriptions_WMA-Test-v1/GEN: 
+                                             {size: 5093504, events: 10000,
+                                              totalLumis: 100}}}}}
          ]}
-         and convert to 
-         {'request_name1': {'size_event': [{size: 20286644784714, events: 38938099, count: 6319, 
-                             dataset: "/test/output_dataset1"},
-                             {size: 20286644784714, events: 38938099, count: 6319, 
-                             dataset: "/test/output_dataset2"}]}
-                       
-          'request_name2': ...
+         and convert to
+         {'request_name1': {'tasks': 
+                    {'task_name1' : { 'siteA': 
+                        {wrappedTotalJobTime: 1612, 
+                         cmsRunCPUPerformance: {totalJobCPU: 20.132924000000003, 
+                                              totalJobTime: 421.0489, 
+                                              totalEventCPU: 4.064402}, 
+                        inputEvents: 0, 
+                        dataset: {/TestLHE/TEST_Subscriptions_WMA-Test-v1/GEN: 
+                                             {size: 5093504, events: 10000,
+                                              totalLumis: 100}}},
+                                             
+                    {'task_name2' : { 'siteA': 
+                        {wrappedTotalJobTime: 1612, 
+                         cmsRunCPUPerformance: {totalJobCPU: 20.132924000000003, 
+                                              totalJobTime: 421.0489, 
+                                              totalEventCPU: 4.064402,
+                                              totalLumis: 100}, 
+                        inputEvents: 0, 
+                        dataset: {/TestLHE/TEST_Subscriptions_WMA-Test-v1/GEN: 
+                                             {size: 5093504, events: 10000,
+                                              totalLumis: 100}}}
+                                             }}
+          
+         }
         """
         options = {"group": True, "stale": "ok", "reduce":True}
         # site of data should be relatively small (~1M) for put in the memory 
+        # If not, find a way to stream
+        results = self.fwjrsCouchDB.loadView("FWJRDump", "performanceSummaryByTask",
+                                        options)
+        data = {}
+        for x in results.get('rows', []):
+            data.setdefault(x['key'][0], {})
+            data[x['key'][0]].setdefault('tasks', {})
+            data[x['key'][0]]['tasks'].setdefault(x['key'][1], {}) 
+            data[x['key'][0]]['tasks'][x['key'][1]].setdefault('sites', {})
+            data[x['key'][0]]['tasks'][x['key'][1]]['sites'][x['key'][2]] = x['value']
+            data[x['key'][0]]['tasks'][x['key'][1]]['sites'][x['key'][2]].setdefault('dataset', {})
+            if x['key'][3]:
+                data[x['key'][0]]['tasks'][x['key'][1]]['sites'][x['key'][2]]['dataset'][x['key'][3]] = x['value']['datasetStat'] 
+                #there is duplicate datasets in data[x['key'][0]]['tasks'][x['key'][1]]['sites'][x['key'][2]], just ignore
+                
+        return data
+    
+    
+    def getEventSummaryByWorkflow(self):
+        """
+        gets the job status information by workflow
+
+        example
+        {"rows":[
+            {"key":['request_name1", "/test/output_dataset1"],
+             "value": {size: 20286644784714, events: 38938099, count: 6319,
+                       dataset: "/test/output_dataset1"}},
+            {"key":['request_name1", "/test/output_dataset2"],
+             "value": {size: 20286644784714, events: 38938099, count: 6319,
+                       dataset: "/test/output_dataset2"}},
+            {"key":['request_name1", "/test/output_dataset3"],
+             "value": {size: 20286644784714, events: 38938099, count: 6319,
+                       dataset: "/test/output_dataset3"}},
+            {"key":['request_name1", "/test/output_dataset4"],
+             "value": {size: 20286644784714, events: 38938099, count: 6319,
+                       dataset: "/test/output_dataset4"}},
+         ]}
+         and convert to
+         {'request_name1': {'size_event': [{size: 20286644784714, events: 38938099, count: 6319,
+                             dataset: "/test/output_dataset1"},
+                             {size: 20286644784714, events: 38938099, count: 6319,
+                             dataset: "/test/output_dataset2"}]}
+
+          'request_name2': ...
+        """
+        options = {"group": True, "stale": "ok", "reduce":True}
+        # site of data should be relatively small (~1M) for put in the memory
         # If not, find a way to stream
         results = self.fwjrsCouchDB.loadView("FWJRDump", "outputByWorkflowName",
                                         options)
@@ -116,10 +189,16 @@ class LocalCouchDBData():
         data = {}
         for x in results.get('rows', []):
             data.setdefault(x['key'][0], [])
-            data[x['key'][0]].append(x['value']) 
+            data[x['key'][0]].append(x['value'])
         logging.info("Found %i requests" % len(data))
         return data
     
+    def getHeartbeat(self):
+        try:
+            return self.jobCouchDB.info();
+        except Exception, ex:
+            return {'error_message': str(ex)}
+
 @emulatorHook
 class WMAgentDBData():
 
@@ -129,7 +208,7 @@ class WMAgentDBData():
                                        logger = logger, dbinterface = dbi)
         wmbsDAOFactory = DAOFactory(package = "WMCore.WMBS",
                                     logger = logger, dbinterface = dbi)
-        wmAgentDAOFactory = DAOFactory(package = "WMCore.Agent.Database", 
+        wmAgentDAOFactory = DAOFactory(package = "WMCore.Agent.Database",
                                      logger = logger, dbinterface = dbi)
 
         self.summaryLevel = summaryLevel
@@ -138,26 +217,85 @@ class WMAgentDBData():
         else:
             self.batchJobAction = bossAirDAOFactory(classname = "JobStatusByWorkflowAndSite")
         self.jobSlotAction = wmbsDAOFactory(classname = "Locations.GetJobSlotsByCMSName")
-        self.componentStatusAction = wmAgentDAOFactory(classname = "CheckComponentStatus")
+        self.finishedTaskAndJobType = wmbsDAOFactory(classname = "Subscriptions.CountFinishedSubscriptionsByTask")
+        self.componentStatusAction = wmAgentDAOFactory(classname = "GetAllHeartbeatInfo")
+        self.components = None
 
-    def getHeartBeatWarning(self):
-        
-        results = self.componentStatusAction.execute(detail = True)
+    def getHeartbeatWarning(self):
+
+        results = self.componentStatusAction.execute()
+        currentTime = time.time()
+        agentStatus = "ok";
         agentInfo = {}
         agentInfo['down_components'] = []
-        if len(results) == 0:
-            agentInfo['status'] = 'ok'
-        else:
-            agentInfo['status'] = 'down'
-            agentInfo['down_components'] = results    
+
+        agentInfo['down_component_detail'] = []
+        agentInfo['status'] = 'ok'
+        for componentInfo in results:
+            hearbeatFlag = (currentTime - componentInfo["last_updated"]) > componentInfo["update_threshold"]
+            if (componentInfo["state"] != "Error") or hearbeatFlag:
+                agentInfo['down_components'].append(componentInfo['name'])
+                agentInfo['status'] = 'down'
+                agentInfo['down_component_detail'].append(componentInfo)
         return agentInfo
-    
+
+    def getComponentStatus(self, config):
+        components = config.listComponents_() + config.listWebapps_()
+        agentInfo = {}
+        agentInfo['down_components'] = set()
+        agentInfo['down_component_detail'] = []
+        agentInfo['status'] = 'ok'
+        # check the component status
+        for component in components:
+            compDir = config.section_(component).componentDir
+            compDir = config.section_(component).componentDir
+            compDir = os.path.expandvars(compDir)
+            daemonXml = os.path.join(compDir, "Daemon.xml")
+            downFlag = False;
+            if not os.path.exists(daemonXml):
+                downFlag = True
+            else:
+                daemon = Details(daemonXml)
+                if not daemon.isAlive():
+                    downFlag = True
+            if downFlag:
+                agentInfo['down_components'].add(component)
+                agentInfo['status'] = 'down'
+        
+        # check the thread status
+        results = self.componentStatusAction.execute()
+        for componentInfo in results:
+            if (componentInfo["state"] == "Error"):
+                agentInfo['down_components'].add(componentInfo['name'])
+                agentInfo['status'] = 'down'
+                agentInfo['down_component_detail'].append(componentInfo)
+        
+        agentInfo['down_components'] = list(agentInfo['down_components'])
+        return agentInfo
+        
     def getBatchJobInfo(self):
         return self.batchJobAction.execute()
 
     def getJobSlotInfo(self):
         return self.jobSlotAction.execute()
-    
+
+    def getFinishedSubscriptionByTask(self):
+        results = self.finishedTaskAndJobType.execute()
+        finishedSubs = {}
+        for item in results:
+            finishedSubs.setdefault(item['workflow'], {})
+            finishedSubs[item['workflow']].setdefault(item['task'], {})
+            finishedSubs[item['workflow']].setdefault('tasks', {})
+            # Assumption: task has only one job type.
+            finishedSubs[item['workflow']]['tasks'][item['task']] = {}
+            finishedSubs[item['workflow']]['tasks'][item['task']]['jobtype'] = item['jobtype']
+            finishedSubs[item['workflow']]['tasks'][item['task']]['subscription_status'] = {}
+            finishedSubs[item['workflow']]['tasks'][item['task']]['subscription_status']['finished'] = item['finished']
+            finishedSubs[item['workflow']]['tasks'][item['task']]['subscription_status']['open'] = item['open']
+            finishedSubs[item['workflow']]['tasks'][item['task']]['subscription_status']['total'] = item['total']
+            finishedSubs[item['workflow']]['tasks'][item['task']]['subscription_status']['updated'] = item['updated']
+        return finishedSubs
+
 def combineAnalyticsData(a, b, combineFunc = None):
     """
         combining 2 data which is the format of dict of dict of ...
@@ -165,10 +303,10 @@ def combineAnalyticsData(a, b, combineFunc = None):
         b = {'a' : {'b': {'d': 1}}}
         should return
         result = {'a' : {'b': {'c': 1, 'd': 1}}, 'b' : {'b': {'c': 1}}}
-        
+
         result is not deep copy
         when combineFunc is specified, if one to the values are not dict type,
-        it will try to combine two values. 
+        it will try to combine two values.
         i.e. combineFunc = lambda x, y: x + y
     """
     result = {}
@@ -182,9 +320,10 @@ def combineAnalyticsData(a, b, combineFunc = None):
                 result[key] = combineFunc(value, result[key])
             else:
                 result[key] = combineAnalyticsData(value, result[key])
-    return result 
+    return result
 
-def convertToRequestCouchDoc(combinedRequests, fwjrInfo, agentInfo, uploadTime, summaryLevel):
+def convertToRequestCouchDoc(combinedRequests, fwjrInfo, finishedTasks, 
+                             agentInfo, uploadTime, summaryLevel):
     requestDocs = []
     for request, status in combinedRequests.items():
         doc = {}
@@ -209,14 +348,18 @@ def convertToRequestCouchDoc(combinedRequests, fwjrInfo, agentInfo, uploadTime, 
             tempData = _convertToStatusSiteFormat(status, summaryLevel)
             doc['status'] = tempData['status']
             doc['sites'] = tempData['sites']
-        
+
         doc['timestamp'] = uploadTime
-        doc['output_progress'] = fwjrInfo.get(request, [])
+        #doc['output_progress'] = fwjrInfo.get(request, [])
+        if request in fwjrInfo:
+            doc['tasks'] = combineAnalyticsData(doc['tasks'], fwjrInfo[request]['tasks'])
+        if request in finishedTasks:
+            doc['tasks'] = combineAnalyticsData(doc['tasks'], finishedTasks[request]['tasks'])
         requestDocs.append(doc)
     return requestDocs
 
 def convertToAgentCouchDoc(agentInfo, acdcConfig, uploadTime):
-    
+
     #sets the _id using agent url, need to be unique
     aInfo = {}
     aInfo.update(agentInfo)
@@ -226,10 +369,10 @@ def convertToAgentCouchDoc(agentInfo, acdcConfig, uploadTime):
     aInfo['timestamp'] = uploadTime
     aInfo['type'] = "agent_info"
     return aInfo
-           
+
 def _setMultiLevelStatus(statusData, status, value):
     """
-    handle the sub status structure 
+    handle the sub status structure
     (i.e. submitted_pending, submitted_running -> {submitted: {pending: , running:}})
     prerequisite: status structure is seperated by '_'
     Currently handle only upto 2 level stucture but can be extended
@@ -275,22 +418,22 @@ def _convertToStatusSiteFormat(requestData, summaryLevel = None):
     data = {}
     data['status'] = {}
     data['sites'] = {}
-    
+
     if summaryLevel != None and summaryLevel == 'task':
         data['tasks'] = {}
         for task, taskData in requestData.items():
-             data['tasks'][task] = _convertToStatusSiteFormat(taskData)
-             _combineJobsForStatusAndSite(taskData, data)
+            data['tasks'][task] = _convertToStatusSiteFormat(taskData)
+            _combineJobsForStatusAndSite(taskData, data)
     else:
-       _combineJobsForStatusAndSite(requestData, data)
+        _combineJobsForStatusAndSite(requestData, data)
     return data
 
 def _getCouchACDCHtmlBase(acdcCouchURL):
     """
     TODO: currently it is hard code to the front page of ACDC
     When there is more information is available, it can be added
-    through 
+    through
     """
-    
+
 
     return '%s/_design/ACDC/collections.html' % sanitizeURL(acdcCouchURL)['url']

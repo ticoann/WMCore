@@ -1,6 +1,8 @@
 
 function(doc) {
-  if (doc.type == "reqmgr_request"){
-    emit([doc.request_date, doc.requestor], {"id": doc._id}) ;
+  if (doc.request_date && (doc.request_date.length > 0)){
+      var dateArray = doc.request_date;
+      // get year, month, day, min
+      emit([dateArray[0], dateArray[1], dateArray[2], dateArray[3]], null) ;
   } 
 }

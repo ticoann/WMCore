@@ -152,6 +152,26 @@ class BlockTestCase(unittest.TestCase):
         self.assertEqual(len(units), 1)
         self.assertEqual(units[0]['Inputs'].keys(), [dataset + '#2'])
 
+    def testLumiMask(self):
+        """Lumi mask test"""
+        rerecoArgs2 = {}
+        rerecoArgs2.update(rerecoArgs)
+        Tier1ReRecoWorkload = rerecoWorkload('ReRecoWorkload', rerecoArgs2)
+        inputDataset = getFirstTask(Tier1ReRecoWorkload).inputDataset()
+        dataset = "/%s/%s/%s" % (inputDataset.primary,
+                                     inputDataset.processed,
+                                     inputDataset.tier)
+        dbs = {inputDataset.dbsurl : DBSReader(inputDataset.dbsurl)}
+
+        # Block blacklist
+        lumiWorkload = rerecoWorkload('ReRecoWorkload',
+                                              rerecoArgs2)
+        task = getFirstTask(lumiWorkload)
+        task.data.input.splitting.runs = ['1']
+        task.data.input.splitting.lumis = ['1,1']
+        units = Block(**self.splitArgs)(lumiWorkload, task)
+        self.assertEqual(len(units), 1)
+
 
     def testDataDirectiveFromQueue(self):
         """Test data directive from queue"""
@@ -195,9 +215,9 @@ class BlockTestCase(unittest.TestCase):
     def testRunWhitelist(self):
         """ReReco lumi split with Run whitelist"""
         # get files with multiple runs
-        Globals.GlobalParams.setNumOfRunsPerFile(2)
+        Globals.GlobalParams.setNumOfRunsPerFile(8)
         # a large number of lumis to ensure we get multiple runs
-        Globals.GlobalParams.setNumOfLumisPerBlock(10)
+        Globals.GlobalParams.setNumOfLumisPerBlock(20)
         splitArgs = dict(SliceType = 'NumberOfLumis', SliceSize = 1)
 
         Tier1ReRecoWorkload = rerecoWorkload('ReRecoWorkload', rerecoArgs)
@@ -218,8 +238,10 @@ class BlockTestCase(unittest.TestCase):
             wq_jobs = 0
             for unit in units:
                 wq_jobs += unit['Jobs']
-                runs = dbs[inputDataset.dbsurl].listRuns(block = unit['Inputs'].keys()[0])
-                jobs += len([x for x in runs if x in getFirstTask(Tier1ReRecoWorkload).inputRunWhitelist()])
+                runLumis = dbs[inputDataset.dbsurl].listRunLumis(block = unit['Inputs'].keys()[0])
+                for run in runLumis:
+                    if run in getFirstTask(Tier1ReRecoWorkload).inputRunWhitelist():
+                        jobs += runLumis[run]
             self.assertEqual(int(jobs / splitArgs['SliceSize'] ) , int(wq_jobs))
 
     def testInvalidSpecs(self):

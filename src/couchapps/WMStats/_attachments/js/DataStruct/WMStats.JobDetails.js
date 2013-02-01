@@ -2,27 +2,18 @@ WMStats.namespace("JobDetails");
 
 WMStats.JobDetails = function (couchData) {
     
-    var _data;
-
-    function setData(data) {
-        var dataRows = data.rows;
-        var jobDetails = [];
-        for (var i in dataRows){
-            jobDetails.push(dataRows[i].doc);
-        }
-        _data = jobDetails;
-    }
+    var jobDetailData = new WMStats._StructBase();
     
-    function getData() {
-        return _data;
-    }
+    jobDetailData.convertCouchData = function(data) {
+                                     var dataRows = data.rows;
+                                     var jobDetails = [];
+                                     for (var i in dataRows){
+                                         jobDetails.push(dataRows[i].doc);
+                                     }
+                                     return jobDetails;
+                                  }
     
-    if (couchData) {
-        setData(couchData);
-    }
+    if (couchData) jobDetailData.setData(couchData);
     
-    return {
-        getData: getData,
-        setData: setData
-    }
+    return jobDetailData
 }

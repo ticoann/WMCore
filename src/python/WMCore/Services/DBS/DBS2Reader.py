@@ -121,6 +121,35 @@ class DBS2Reader:
 
         return [x["RunNumber"] for x in results]
 
+    def listRunLumis(self, dataset = None, block = None):
+        """
+        It gets a list of DBSRun objects and returns the number of lumisections per run
+        DbsRun (RunNumber,
+                NumberOfEvents,
+                NumberOfLumiSections,
+                TotalLuminosity,
+                StoreNumber,
+                StartOfRungetLong,
+                EndOfRun,
+                CreationDate,
+                CreatedBy,
+                LastModificationDate,
+                LastModifiedBy
+                )
+        """
+        try:
+            if block:
+                results = self.dbs.listRuns(block = block)
+            else:
+                results = self.dbs.listRuns(dataset = dataset)
+        except DbsException, ex:
+            msg = "Error in DBSReader.listRuns(%s, %s)\n" % (dataset, block)
+            msg += "%s\n" % formatEx(ex)
+            raise DBSReaderError(msg)
+
+        return dict((x["RunNumber"], x["NumberOfLumiSections"])
+                    for x in results)
+
     def listProcessedDatasets(self, primary, dataTier = None):
         """
         _listProcessedDatasets_
@@ -220,7 +249,7 @@ class DBS2Reader:
         """
         self.checkDatasetPath(dataset)
         try:
-             blocks = self.dbs.listBlocks(dataset, blockName, nosite = not locations)
+            blocks = self.dbs.listBlocks(dataset, blockName, nosite = not locations)
         except DbsException, ex:
             msg = "Error in DBSReader.listFileBlocks(%s)\n" % dataset
             msg += "%s\n" % formatEx(ex)
@@ -241,7 +270,7 @@ class DBS2Reader:
         """
         self.checkDatasetPath(dataset)
         try:
-             blocks = self.dbs.listBlocks(dataset, blockName, nosite = True)
+            blocks = self.dbs.listBlocks(dataset, blockName, nosite = True)
         except DbsException, ex:
             msg = "Error in DBSReader.listFileBlocks(%s)\n" % dataset
             msg += "%s\n" % formatEx(ex)
@@ -267,7 +296,7 @@ class DBS2Reader:
         """
         self.checkDatasetPath(dataset)
         try:
-             blocks = self.dbs.listBlocks(dataset, nosite = True)
+            blocks = self.dbs.listBlocks(dataset, nosite = True)
         except DbsException, ex:
             msg = "Error in DBSReader.listFileBlocks(%s)\n" % dataset
             msg += "%s\n" % formatEx(ex)
@@ -554,11 +583,11 @@ class DBS2Reader:
          _checkDatasetPath_
         """
         if pathName in ("", None):
-           raise DBSReaderError("Invalid Dataset Path name: => %s <=" % pathName)
+            raise DBSReaderError("Invalid Dataset Path name: => %s <=" % pathName)
 
     def checkBlockName(self, blockName):
         """
          _checkBlockName_
         """
         if blockName in ("", "*", None):
-           raise DBSReaderError("Invalid Block name: => %s <=" % blockName)
+            raise DBSReaderError("Invalid Block name: => %s <=" % blockName)

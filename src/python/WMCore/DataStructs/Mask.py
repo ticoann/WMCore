@@ -41,8 +41,11 @@ class Mask(dict):
         Set FirstEvent & LastEvent fields as max & skip events
 
         """
+
         self['FirstEvent'] = skipEvents
-        self['LastEvent']  = skipEvents + maxEvents
+        if maxEvents is not None:
+            self['LastEvent']  = skipEvents + maxEvents
+
         return
 
     def setMaxAndSkipLumis(self, maxLumis, skipLumi):
@@ -209,9 +212,9 @@ class Mask(dict):
             for pair in self["runAndLumis"][runNumber]:
                 if pair[0] == pair[1]:
                     maskLumis.add(pair[0])
-                else:                  
+                else:
                     maskLumis = maskLumis.union(range(pair[0], pair[1] + 1, 1))
-            
+
             filteredLumis = set(runDict[runNumber].lumis).intersection(maskLumis)
             if len(filteredLumis) > 0:
                 newRuns.add(Run(runNumber, *list(filteredLumis)))
@@ -240,5 +243,3 @@ class ExclusiveMask(Mask):
     def __init__(self):
         Mask.__init__(self)
         self['inclusive'] = False
-
-

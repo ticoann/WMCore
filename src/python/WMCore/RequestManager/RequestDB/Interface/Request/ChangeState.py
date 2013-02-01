@@ -28,7 +28,7 @@ def changeRequestIDStatus(requestId, newState, priority = None):
 
     - *requestId* : id of the request to be modified
     - *newState*    : name of the new status for the request
-    - *priority* : optional integer priority 
+    - *priority* : optional integer priority
 
     """
     factory = DBConnect.getConnection()
@@ -66,6 +66,9 @@ def changeRequestStatus(requestName, newState, priority = None, wmstatUrl = None
     - *requestName* : name of the request to be modified
     - *newState*    : name of the new status for the request
     - *priority* : optional integer priority
+    
+    Apparently when changing request state (on assignment page),
+    it's possible to change priority at one go. Hence the argument is here.
 
     """
     #TODO: should we make this mendatory?
@@ -95,14 +98,9 @@ def assignRequest(requestName, teamName, priorityModifier = 0, prodMgr = None, w
 
 
     """
-    if wmstatUrl:
-        wmstatSvc = WMStatsWriter(wmstatUrl)
-        wmstatSvc.updateTeam(requestName, teamName)
-        
+
     factory = DBConnect.getConnection()
     reqId = getRequestID(factory, requestName)
-    statusMap = factory(classname = "ReqStatus.Map").execute()
-    statusId = statusMap['assigned']
 
     teamId = factory(classname = "Team.ID").execute(teamName)
     if teamId == None:
@@ -110,15 +108,14 @@ def assignRequest(requestName, teamName, priorityModifier = 0, prodMgr = None, w
         msg += "Failed to assign request %s to team %s" % (requestName, teamName)
         raise RuntimeError, msg
 
-
+    if wmstatUrl:
+        wmstatSvc = WMStatsWriter(wmstatUrl)
+        wmstatSvc.updateTeam(requestName, teamName)
 
     assigner = factory(classname = "Assignment.New")
     assigner.execute(reqId, teamId, priorityModifier)
 
-    stateChanger = factory(classname = "Request.SetStatus")
-    stateChanger.execute(reqId, statusId)
-
-
+    changeRequestStatus(requestName, 'assigned', priority = None, wmstatUrl = wmstatUrl)
 
     if prodMgr != None:
         addPM = factory(classname = "Progress.ProdMgr")
@@ -173,4 +170,3 @@ def putMessage(requestName, message):
     message = message[:999]
     factory(classname = "Progress.Message").execute(reqId, message)
     return
-

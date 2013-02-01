@@ -19,7 +19,7 @@ from WMCore.Storage.Execute import runCommandWithOutput
 class RFCPCERNImpl(StageOutImpl):
     """
     _RFCPCERNImpl_
-    
+
     """
 
     def __init__(self, stagein=False):
@@ -47,6 +47,10 @@ class RFCPCERNImpl(StageOutImpl):
         """
         # EOS stageout auto-creates directories
         if self.isEOS(targetPFN):
+            return
+
+        # Only create dir on remote storage
+        if self.stageIn:
             return
 
         targetDir = os.path.dirname(self.parseCastorPath(targetPFN))
@@ -95,18 +99,35 @@ class RFCPCERNImpl(StageOutImpl):
         If adler32 checksum is provided, use it for the transfer
 
         """
-        isTargetEOS = self.isEOS(targetPFN)
 
         result = ""
 
-        if isTargetEOS:
+        if self.stageIn:
+            remotePFN, localPFN = sourcePFN, targetPFN
+        else:
+            remotePFN, localPFN = targetPFN, sourcePFN
+            result += "LOCAL_SIZE=`stat -c%%s \"%s\"`\n" % localPFN
+            result += "echo \"Local File Size is: $LOCAL_SIZE\"\n"
+
+        isRemoteEOS = self.isEOS(remotePFN)
+
+        useChecksum = ( checksums != None and checksums.has_key('adler32') and not self.stageIn )
+        removeCommand = self.createRemoveFileCommand(targetPFN)
+
+        if isRemoteEOS:
 
             result += "source /afs/cern.ch/project/eos/installation/pro/etc/setup.sh\n"
             result += "xrdcp -f -s "
 
+            if useChecksum:
+
+                checksums['adler32'] = "%08x" % int(checksums['adler32'], 16)
+
+                result += "-ODeos.targetsize=$LOCAL_SIZE\&eos.checksum=%s " % checksums['adler32']
+
         else:
 
-            if checksums != None and checksums.has_key('adler32') and not self.stageIn:
+            if useChecksum:
 
                 targetFile = self.parseCastorPath(targetPFN)
 
@@ -121,14 +142,10 @@ class RFCPCERNImpl(StageOutImpl):
         result += " \"%s\" \n" % targetPFN
 
         if self.stageIn:
-            remotePFN, localPFN = sourcePFN, targetPFN
-        else:
-            remotePFN, localPFN = targetPFN, sourcePFN
+            result += "LOCAL_SIZE=`stat -c%%s \"%s\"`\n" % localPFN
+            result += "echo \"Local File Size is: $LOCAL_SIZE\"\n"
 
-        result += "LOCAL_SIZE=`stat -c%%s \"%s\"`\n" % localPFN
-        result += "echo \"Local File Size is: $LOCAL_SIZE\"\n"
-
-        if isTargetEOS:
+        if isRemoteEOS:
 
             remotePFN = remotePFN.replace("root://eoscms//eos/cms/", "/eos/cms/", 1)
 
@@ -136,29 +153,46 @@ class RFCPCERNImpl(StageOutImpl):
             result += "REMOTE_SIZE=`echo \"$REMOTE_FILEINFO\" | sed -r 's/.* size=([0-9]+) .*/\\1/'`\n"
             result += "echo \"Remote File Size is: $REMOTE_SIZE\"\n"
 
-            if checksums != None and checksums.has_key('adler32') and not self.stageIn:
-
-                checksums['adler32'] = "%08x" % int(checksums['adler32'], 16)
+            if useChecksum:
 
                 result += "echo \"Local File Checksum is: %s\"\n" % checksums['adler32']
                 result += "REMOTE_XS=`echo \"$REMOTE_FILEINFO\" | sed -r 's/.* xstype=adler xs=([0-9a-fA-F]{8})[0]+ .*/\\1/'`\n"
                 result += "echo \"Remote File Checksum is: $REMOTE_XS\"\n"
 
                 result += "if [ $REMOTE_SIZE ] && [ $REMOTE_XS ] && [ $LOCAL_SIZE == $REMOTE_SIZE ] && [ '%s' == $REMOTE_XS ]; then exit 0; " % checksums['adler32']
-                result += "else echo \"Error: Size or Checksum Mismatch between local and SE\"; eos rm '%s'; exit 60311 ; fi" % remotePFN
+                result += "else echo \"Error: Size or Checksum Mismatch between local and SE\"; %s ; exit 60311 ; fi" % removeCommand
+
             else:
+
                 result += "if [ $REMOTE_SIZE ] && [ $LOCAL_SIZE == $REMOTE_SIZE ]; then exit 0; "
-                result += "else echo \"Error: Size Mismatch between local and SE\"; eos rm '%s'; exit 60311 ; fi" % remotePFN
+                result += "else echo \"Error: Size Mismatch between local and SE\"; %s ; exit 60311 ; fi" % removeCommand
 
         else:
 
             result += "REMOTE_SIZE=`rfstat '%s' | grep Size | cut -f2 -d: | tr -d ' '`\n" % remotePFN
             result += "echo \"Remote File Size is: $REMOTE_SIZE\"\n"
 
-            result += "if [ $REMOTE_SIZE ] && [ $LOCAL_SIZE == $REMOTE_SIZE ]; then exit 0; else echo \"Error: Size Mismatch between local and SE\"; exit 60311 ; fi"
+            result += "if [ $REMOTE_SIZE ] && [ $LOCAL_SIZE == $REMOTE_SIZE ]; then exit 0; else echo \"Error: Size Mismatch between local and SE\"; %s ; exit 60311 ; fi" % removeCommand
 
         return result
 
+
+    def createRemoveFileCommand(self, pfn):
+        """
+        _createRemoveFileCommand_
+
+        Alternate between EOS, CASTOR and local.
+        """
+        if self.isEOS(pfn):
+            return "xrd eoscms rm %s" % pfn.replace("root://eoscms//eos/cms/", "/eos/cms/", 1)
+        try:
+            simplePFN = self.parseCastorPath(pfn)
+            return  "stager_rm -a -M %s ; nsrm %s" % (simplePFN, simplePFN)
+        except StageOutError:
+            # Not castor
+            pass
+
+        return StageOutImpl.createRemoveFileCommand(self, pfn)
 
     def removeFile(self, pfnToRemove):
         """
@@ -166,9 +200,14 @@ class RFCPCERNImpl(StageOutImpl):
 
         """
         if self.isEOS(pfnToRemove):
+
             command = "xrd eoscms rm %s" % pfnToRemove.replace("root://eoscms//eos/cms/", "/eos/cms/", 1)
+
         else:
-            command = "stager_rm -M \"%s\" ; nsrm \"%s\"" % (pfnToRemove, pfnToRemove)
+
+            simplePFN = self.parseCastorPath(pfnToRemove)
+
+            command = "stager_rm -a -M %s ; nsrm %s" % (simplePFN, simplePFN)
 
         execute(command)
         return
@@ -237,31 +276,40 @@ class RFCPCERNImpl(StageOutImpl):
         """
         _parseCastorPath_
 
-        Castor filenames can be full URLs
-        with control statements for the rfcp
+        Castor filenames can be full URLs with control
+        statements for the rfcp
 
-        Some other castor command line tools do
-        not understand that syntax, so we need
-        to retrieve the short version
+        Some other castor command line tools do not understand
+        that syntax, so we need to retrieve the path and other
+        parameters from the URL
         
         """
         simpleCastorPath = None
 
+        # full castor PFNs
         if simpleCastorPath == None:
             regExpParser = re.compile('/+castor/cern.ch/(.*)')
             match = regExpParser.match(complexCastorPath)
             if ( match != None ):
                 simpleCastorPath = '/castor/cern.ch/' + match.group(1)
 
+        # rfio style URLs
         if simpleCastorPath == None:
             regExpParser = re.compile('rfio:.*/+castor/cern.ch/([^?]+).*')
             match = regExpParser.match(complexCastorPath)
             if ( match != None ):
                 simpleCastorPath = '/castor/cern.ch/' + match.group(1)
 
-        # if that does not work just use as-is
+        # xrootd/castor style URLs
         if simpleCastorPath == None:
-            simpleCastorPath = complexCastorPath
+            regExpParser = re.compile('root:.*/+castor/cern.ch/([^?]+).*')
+            match = regExpParser.match(complexCastorPath)
+            if ( match != None ):
+                simpleCastorPath = '/castor/cern.ch/' + match.group(1)
+
+        # if that does not work raise an error
+        if simpleCastorPath == None:
+            raise StageOutError("Can't parse castor path out of URL !")
 
         # remove multi-slashes from path
         while ( simpleCastorPath.find('//') > -1 ):

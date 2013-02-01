@@ -2,16 +2,12 @@
 """
 _DBSBufferUtil_
 
-APIs related to using the DBSBuffer
-
+APIs related to using the DBSBuffer.
 """
 
-
-
-
 import logging
-import os
 import threading
+
 from WMCore.WMFactory import WMFactory
 from WMCore.DAOFactory import DAOFactory
 from WMComponent.DBS3Buffer.DBSBufferFile import DBSBufferFile
@@ -30,8 +26,8 @@ class DBSBufferUtil(WMConnectionBase):
         self.daoFactory = DAOFactory(package = "WMComponent.DBS3Buffer",
                                      logger = myThread.logger,
                                      dbinterface = myThread.dbi)
-        
-    
+
+
     def addFile(self, file, dataset=0):
         """
         Add the file to the buffer
@@ -42,28 +38,28 @@ class DBSBufferUtil(WMConnectionBase):
         existingTransaction = self.beginTransaction()
 
         bufferFile = DBSBufferFile(lfn = file['LFN'], size = file['Size'],
-                                   events = file['TotalEvents'], 
+                                   events = file['TotalEvents'],
                                    cksum=file['Checksum'], dataset=dataset)
 
-	runLumiList = file.getLumiSections()
-	runList     = [x['RunNumber'] for x in runLumiList]
+        runLumiList = file.getLumiSections()
+        runList     = [x['RunNumber'] for x in runLumiList]
 
-	for runNumber in runList:
-		lumis = [int(y['LumiSectionNumber']) for y in runLumiList if y['RunNumber']==runNumber]
-		run=Run(runNumber, *lumis)
-		bufferFile.addRun(run)
-                
+        for runNumber in runList:
+            lumis = [int(y['LumiSectionNumber']) for y in runLumiList if y['RunNumber']==runNumber]
+            run=Run(runNumber, *lumis)
+            bufferFile.addRun(run)
+
         if bufferFile.exists() == False:
             bufferFile.create()
             bufferFile.setLocation(se=file['SEName'], immediateSave = True)
-	else:
+        else:
             bufferFile.load()
-	# Lets add the file to DBS Buffer as well
+        # Lets add the file to DBS Buffer as well
         #UPDATE File Count
 
-	self.updateDSFileCount(dataset=dataset)
+        self.updateDSFileCount(dataset=dataset)
 
-	#Parent files
+        #Parent files
         bufferFile.addParents(file.inputFiles)
 
         self.commitTransaction(existingTransaction)
@@ -78,13 +74,13 @@ class DBSBufferUtil(WMConnectionBase):
         myThread = threading.currentThread()
 
         existingTransaction = self.beginTransaction()
-        
+
         newDS = self.daoFactory(classname = "NewDataset")
         newDS.execute(datasetPath=dataset["Path"], conn = self.getDBConn(), transaction=self.existingTransaction())
 
         self.commitTransaction(existingTransaction)
         return
-    
+
     def addAlgo(self, algo):
         """
         Add the algo to the buffer (API Call)
@@ -134,7 +130,7 @@ class DBSBufferUtil(WMConnectionBase):
     def loadDBSBufferFilesBulk(self, fileObjs):
         """
         _loadDBSBufferFilesBulk_
-        
+
         Yes, this is a stupid place to put it.
         No, there's not better place.
         """
@@ -155,7 +151,7 @@ class DBSBufferUtil(WMConnectionBase):
         results = loadFiles.execute(files = binds, conn = self.getDBConn(),
                                     transaction = self.existingTransaction())
 
-        
+
         for entry in results:
             # Add loaded information
             dbsfile = DBSBufferFile(id=entry['id'])
@@ -164,7 +160,7 @@ class DBSBufferUtil(WMConnectionBase):
 
         for dbsfile in dbsFiles:
             if 'runInfo' in dbsfile.keys():
-                # Then we have to replace it with a real run
+            # Then we have to replace it with a real run
                 for r in dbsfile['runInfo'].keys():
                     run = Run(runNumber = r)
                     run.extend(dbsfile['runInfo'][r])
@@ -176,11 +172,11 @@ class DBSBufferUtil(WMConnectionBase):
                     newFile = DBSBufferFile(lfn = lfn)
                     dbsfile['parents'].add(newFile)
                 del dbsfile['parentLFNs']
-        
+
 
 
         self.commitTransaction(existingTransaction)
-    
+
 
         return dbsFiles
 
@@ -208,18 +204,17 @@ class DBSBufferUtil(WMConnectionBase):
 
 
 
-    def findOpenBlocks(self):
+    def findOpenBlocks(self, dbs3OnlyUpload = False):
         """
         _findOpenBlocks_
-        
+
         This should find all blocks.
         """
-
         myThread = threading.currentThread()
         existingTransaction = self.beginTransaction()
-        
+
         openBlocks = self.daoFactory(classname = "GetOpenBlocks")
-        result = openBlocks.execute(conn = self.getDBConn(),
+        result = openBlocks.execute(dbs3OnlyUpload, conn = self.getDBConn(),
                                     transaction=self.existingTransaction())
 
         self.commitTransaction(existingTransaction)
@@ -230,7 +225,7 @@ class DBSBufferUtil(WMConnectionBase):
         """
         _loadBlocksByDAS_
 
-        Given a DAS, find all the 
+        Given a DAS, find all the
         blocks associated with it in the
         Open status
         """
@@ -250,7 +245,7 @@ class DBSBufferUtil(WMConnectionBase):
 
 
 
-    def loadBlocks(self, blocknames):
+    def loadBlocks(self, blocknames, dbs3UploadOnly):
         """
         _loadBlocksByDAS_
 
@@ -266,12 +261,11 @@ class DBSBufferUtil(WMConnectionBase):
         existingTransaction = self.beginTransaction()
 
         findBlocks = self.daoFactory(classname = "LoadBlocks")
-        result     = findBlocks.execute(blocknames = blocknames,
+        result     = findBlocks.execute(blocknames, dbs3UploadOnly,
                                         conn = self.getDBConn(),
                                         transaction=self.existingTransaction())
 
         self.commitTransaction(existingTransaction)
-
         return result
 
 
@@ -321,13 +315,12 @@ class DBSBufferUtil(WMConnectionBase):
         return dbsFiles
 
 
-    def updateBlocks(self, blocks):
+    def updateBlocks(self, blocks, dbs3UploadOnly = False):
         """
         _updateBlocks_
 
         Update the blocks in DBSBuffer
         """
-
         if len(blocks) < 1:
             # Nothing to do
             return
@@ -336,7 +329,7 @@ class DBSBufferUtil(WMConnectionBase):
         existingTransaction = self.beginTransaction()
 
         updateBlock = self.daoFactory(classname = "UpdateBlocks")
-        updateBlock.execute(blocks = blocks, conn = self.getDBConn(),
+        updateBlock.execute(blocks, dbs3UploadOnly, conn = self.getDBConn(),
                             transaction=self.existingTransaction())
         self.commitTransaction(existingTransaction)
         return
@@ -345,13 +338,13 @@ class DBSBufferUtil(WMConnectionBase):
     def createBlocks(self, blocks):
         """
         _createBlocks_
-        
+
         Create blocks in the DBSBuffer
         """
 
         if len(blocks) < 1:
             return
-        
+
         existingTransaction = self.beginTransaction()
 
         newBlocks = self.daoFactory(classname = "CreateBlocks")
@@ -364,14 +357,14 @@ class DBSBufferUtil(WMConnectionBase):
     def setBlockFiles(self, binds):
         """
         _SetBlockFiles_
-        
+
         Set files to have the right blocks/
         """
 
         if len(binds) < 1:
             # Nothing to do
             return
-        
+
         existingTransaction = self.beginTransaction()
 
         setBlocks = self.daoFactory(classname = "SetBlockFiles")
