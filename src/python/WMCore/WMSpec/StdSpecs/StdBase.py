@@ -12,7 +12,7 @@ from WMCore.Lexicon import lfnBase, identifier, acqname, cmsswversion, cmsname
 from WMCore.Services.Dashboard.DashboardReporter import DashboardReporter
 from WMCore.WMException import WMException
 from WMCore.WMSpec.WMWorkload import newWorkload
-from WMCore.WMSpec.WMWorkloadTools import makeList, strToBool, validateArguments
+from WMCore.WMSpec.WMWorkloadTools import makeList, strToBool, validateArgumentsCreate
 
 analysisTaskTypes = ['Analysis', 'PrivateMC']
 
@@ -720,7 +720,7 @@ class StdBase(object):
         """
         # Validate the arguments according to the workload arguments definition
         argumentDefinition = self.getWorkloadArguments()
-        msg = validateArguments(schema, argumentDefinition)
+        msg = validateArgumentsCreate(schema, argumentDefinition)
         if msg is not None:
             self.raiseValidationException(msg)
         return

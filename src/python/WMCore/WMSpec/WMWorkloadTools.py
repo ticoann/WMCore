@@ -69,14 +69,36 @@ def parsePileupConfig(mcPileup, dataPileup):
         pileUpConfig['data'] = [dataPileup]
     return pileUpConfig
 
-def validateArguments(arguments, argumentDefinition):
+def _validateArgument(argument, value, argumentDefinition):
+    validNull = argumentDefinition[argument]["null"]
+    if not validNull and value is None:
+            return "Argument %s can't be None" % argument
+    elif validNull and value is None:
+        continue
+    try:
+        argType = argumentDefinition[argument]["type"]
+        argType(value)
+    except Exception:
+        return "Argument %s type is incorrect in schema." % argument
+    validateFunction = argumentDefinition[argument]["validate"]
+    if validateFunction is not None:
+        try:
+            if not validateFunction(argType(value)):
+                raise Exception
+        except:
+            # Some validation functions (e.g. Lexicon) will raise errors instead of returning False
+            return "Argument %s doesn't pass validation." % argument
+    return
+
+def validateArgumentsCreate(arguments, argumentDefinition):
     """
     _validateArguments_
 
     Validate a set of arguments against and argument definition
     as defined in StdBase.getWorkloadArguments. It returns
     an error message if the validation went wrong,
-    otherwise returns None
+    otherwise returns None, this is used for spec creation 
+    checks the whether argument is optional as well as validation
     """
     for argument in argumentDefinition:
         optional = argumentDefinition[argument]["optional"]
@@ -84,22 +106,18 @@ def validateArguments(arguments, argumentDefinition):
             return "Argument %s is required." % argument
         elif optional and argument not in arguments:
             continue
-        validNull = argumentDefinition[argument]["null"]
-        if not validNull and arguments[argument] is None:
-            return "Argument %s can't be None" % argument
-        elif validNull and arguments[argument] is None:
-            continue
-        try:
-            argType = argumentDefinition[argument]["type"]
-            argType(arguments[argument])
-        except Exception:
-            return "Argument %s type is incorrect in schema." % argument
-        validateFunction = argumentDefinition[argument]["validate"]
-        if validateFunction is not None:
-            try:
-                if not validateFunction(argType(arguments[argument])):
-                    raise Exception
-            except:
-                # Some validation functions (e.g. Lexicon) will raise errors instead of returning False
-                return "Argument %s doesn't pass validation." % argument
+        _validateArgument(argument, arguments[argument], argumentDefinition)
+    return
+
+def validateArgumentsUpdate(arguments, argumentDefinition):
+    """
+    _validateArgumentsUpdate_
+
+    Validate a set of arguments against and argument definition
+    as defined in StdBase.getWorkloadArguments. It returns
+    an error message if the validation went wrong,
+    otherwise returns None
+    """
+    for argument in arguments:
+        _validateArgument(argument, arguments[argument], argumentDefinition)
     return
