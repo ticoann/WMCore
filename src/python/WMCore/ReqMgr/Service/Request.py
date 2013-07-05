@@ -142,14 +142,13 @@ class Request(RESTEntity):
         
     
     def get_reqmgr_view(self, view, options, keys, format):
-        
-        return self._get_couch_view(self.reqmgr_db, "ReqMgr", view, options, keys, format)
+        return self._get_couch_view(self.reqmgr_db, "ReqMgr", view,
+                                    options, keys, format)
     
     
     def get_wmstats_view(self, view, options, keys, format):
-        
-        return self._get_couch_view(self.wmstatsCouch, "WMStats", view, options, keys, format)
-       
+        return self._get_couch_view(self.wmstatsCouch, "WMStats", view,
+                                    options, keys, format)
     
     def _get_request_by_name(self, name, stale="update_after"):
         """
