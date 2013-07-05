@@ -44,8 +44,8 @@ class ReqMgrTest(RESTBaseUnitTestWithDBBackend):
         RESTBaseUnitTestWithDBBackend.setUp(self)
         
         #Warning: this assumes the same structure in jenkins wmcore_root/test
-        requestPath = os.path.join(getWMBASE(), "test", "data", "ReqMgr", "requests")
-        #requestPath = os.path.join("..", "..", "..", "..", "data", "ReqMgr", "requests")
+        #requestPath = os.path.join(getWMBASE(), "test", "data", "ReqMgr", "requests")
+        requestPath = os.path.join("..", "..", "..", "..", "data", "ReqMgr", "requests")
         mcFile = open(os.path.join(requestPath, "MonteCarlo.json"), 'r')
         self.mcArgs = JsonWrapper.load(mcFile)["createRequest"]
         
@@ -64,6 +64,8 @@ class ReqMgrTest(RESTBaseUnitTestWithDBBackend):
         result = self.jsonSender.get('data/request?status=new&status=assigned&_nostale=true')[0]['result']
         print result
         self.jsonSender.get('data/request?prep_id=%s&_nostale=true' % self.mcArgs["PrepID"])[0]['result']
+        print result
+        self.jsonSender.get('data/request?campaign=%s&_nostale=true' % self.mcArgs["PrepID"])[0]['result']
         print result
         
 if __name__ == '__main__':

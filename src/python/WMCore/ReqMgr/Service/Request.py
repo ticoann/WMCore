@@ -100,7 +100,7 @@ class Request(RESTEntity):
         if status and team:
             request_info.append(self.get_reqmgr_view("byteamandstatus", option, team, "list"))
         if name:
-            request_info.append(self._getReuestsByNames(name))
+            request_info.append(self._get_request_by_name(name))
         if prep_id:
             request_info.append(self.get_reqmgr_view("byprepid", option, prep_id, "list"))
         if inputdataset:
@@ -151,11 +151,11 @@ class Request(RESTEntity):
         return self._get_couch_view(self.wmstatsCouch, "WMStats", view, options, keys, format)
        
     
-    def _get_request_by_names(self, names, stale="update_after"):
+    def _get_request_by_name(self, name, stale="update_after"):
         """
         TODO: names can be regular expression or list of names
         """
-        request_doc = self.reqmgr_db.document(self.db_name, names)
+        request_doc = self.reqmgr_db.document(name)
         return rows([request_doc])
         
     def _combine_request(self, request_info, requestAgentUrl, cache):
@@ -173,6 +173,12 @@ class Request(RESTEntity):
 
         return requestAgentUrlList;
 
+    def put(self, name, **kwargs):
+        
+        return self.reqmgr_db.updateDocument(name, "ReqMgr", "updaterequest",
+                                             fields=kwargs)
+        
+    
     @restcall
     def delete(self, request_name):
         cherrypy.log("INFO: Deleting request document '%s' ..." % request_name)
