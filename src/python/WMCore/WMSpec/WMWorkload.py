@@ -1624,6 +1624,44 @@ class WMWorkloadHelper(PersistencyHelper):
         for task in self.getTopLevelTask():
             return task.inputLocationFlag()
         return False
+    
+    def setAssignmentArgs(self, args):
+        """
+        set up all the argument related to assigning request.
+        args are validated before update.
+        assignment is common for all different types spec.
+        """
+        
+        processedDatasetParts = ["AcquisitionEra", "ProcessingVersion"]
+        if args.get("ProcessingString", None):
+            processedDatasetParts.append("ProcessingString")
+        for field in processedDatasetParts:
+            if type(args[field]) == dict:
+                for value in args[field].values():
+                    self.validate(value, field)
+            else:
+                self.validate(args[field], field)
+
+        # Set white list and black list
+        whiteList = args.get("SiteWhitelist", [])
+        blackList = args.get("SiteBlacklist", [])
+        self.setSiteWildcardsLists(siteWhitelist = whiteList, siteBlacklist = blackList,
+                                     wildcardDict = self.wildcardSites)
+        # Set ProcessingVersion and AcquisitionEra, which could be json encoded dicts
+        self.setProcessingVersion(args["ProcessingVersion"])
+        self.setAcquisitionEra(args["AcquisitionEra"])
+        self.setProcessingString(args.get("ProcessingString", None))
+        #FIXME not validated
+        self.setLFNBase(args["MergedLFNBase"], args["UnmergedLFNBase"])
+        self.setMergeParameters(int(args.get("MinMergeSize", 2147483648)),
+                                  int(args.get("MaxMergeSize", 4294967296)),
+                                  int(args.get("MaxMergeEvents", 50000)))
+        self.setupPerformanceMonitoring(int(args.get("maxRSS", 2411724)),
+                                          int(args.get("maxVSize", 20411724)),
+                                          int(args.get("SoftTimeout", 129600)),
+                                          int(args.get("GracePeriod", 300)))
+
+        return args
 
 class WMWorkload(ConfigSection):
     """
