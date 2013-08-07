@@ -1662,6 +1662,125 @@ class WMWorkloadHelper(PersistencyHelper):
                                           int(args.get("GracePeriod", 300)))
 
         return args
+    
+    @staticmethod
+    def getAssignmentArguments():
+        """
+        _getAssignmentArguments_
+
+        This represents the authorative list of request arguments that are
+        interpreted by the current spec class. 
+        The list is formatted as a 2-level dictionary, the keys in the first level
+        are the identifiers for the arguments processed by the current spec.
+        The second level dictionary contains the information about that argument for
+        validation:
+
+        - default: Gives a default value if not provided,
+                   this default value usually is good enough for a standard workflow. If the argument is not optional
+                   and a default value is provided, this is only meant for test purposes.
+        - type: A function that verifies the type of the argument, it may also cast it into the appropiate python type.    
+                If the input is not compatible with the expected type, this method must throw an exception.
+        - optional: This boolean value indicates if the value must be provided or not
+        - validate: A function which validates the input after type casting,
+                    it returns True if the input is valid, it can throw exceptions on invalid input.
+        - attr: This represents the name of the attribute corresponding to the argument in the WMSpec object.
+        - null: This indicates if the argument can have None as its value.
+        Example:
+        {
+            RequestPriority : {'default' : 0,
+                               'type' : int,
+                               'optional' : False,
+                               'validate' : lambda x : x > 0,
+                               'attr' : 'priority',
+                               'null' : False}
+        }
+        This replaces the old syntax in the __call__ of:
+
+        self.priority = arguments.get("RequestPriority", 0)
+        """
+        arguments = {"RequestPriority": {"default" : 0, "type" : int,
+                                         "optional" : False, "validate" : lambda x : (x >= 0 and x < 1e6),
+                                         "attr" : "priority"},
+                     "Requestor": {"default" : "unknown", "optional" : False,
+                                   "attr" : "owner"},
+                     "RequestorDN" : {"default" : "unknown", "optional" : False,
+                                      "attr" : "owner_dn"},
+                     "Group" : {"default" : "unknown", "optional" : False,
+                                "attr" : "group"},
+                     "VoGroup" : {"default" : "DEFAULT", "attr" : "owner_vogroup"},
+                     "VoRole" : {"default" : "DEFAULT", "attr" : "owner_vorole"},
+                     "AcquisitionEra" : {"default" : "None", "validate" : acqname},
+                     "Campaign" : {"default" : None, "optional" : True, "attr" : "campaign"},
+                     "CMSSWVersion" : {"default" : "CMSSW_5_3_7", "validate" : cmsswversion,
+                                       "optional" : False, "attr" : "frameworkVersion"},
+                     "ScramArch" : {"default" : "slc5_amd64_gcc462", "optional" : False},
+                     "ProcessingVersion" : {"default" : 0, "type" : int},
+                     "ProcessingString" : {"default" : None, "null" : True},
+                     "SiteBlacklist" : {"default" : [], "type" : makeList,
+                                        "validate" : lambda x: all([cmsname(y) for y in x])},
+                     "SiteWhitelist" : {"default" : [], "type" : makeList,
+                                        "validate" : lambda x: all([cmsname(y) for y in x])},
+                     "UnmergedLFNBase" : {"default" : "/store/unmerged"},
+                     "MergedLFNBase" : {"default" : "/store/data"},
+                     "MinMergeSize" : {"default" : 2 * 1024 * 1024 * 1024, "type" : int,
+                                       "validate" : lambda x : x > 0},
+                     "MaxMergeSize" : {"default" : 4 * 1024 * 1024 * 1024, "type" : int,
+                                       "validate" : lambda x : x > 0},
+                     "MaxWaitTime" : {"default" : 24 * 3600, "type" : int,
+                                      "validate" : lambda x : x > 0},
+                     "MaxMergeEvents" : {"default" : 100000, "type" : int,
+                                         "validate" : lambda x : x > 0},
+                     "ValidStatus" : {"default" : "PRODUCTION"},
+                     "DbsUrl" : {"default" : "http://cmsdbsprod.cern.ch/cms_dbs_prod_global/servlet/DBSServlet"},
+                     "DashboardHost" : {"default" : "cms-wmagent-job.cern.ch"},
+                     "DashboardPort" : {"default" : 8884, "type" : int,
+                                        "validate" : lambda x : x > 0},
+                     "OverrideCatalog" : {"default" : None, "null" : True},
+                     "RunNumber" : {"default" : 0, "type" : int},
+                     "TimePerEvent" : {"default" : 12.0, "type" : float,
+                                       "optional" : False, "validate" : lambda x : x > 0},
+                     "Memory" : {"default" : 2300.0, "type" : float,
+                                 "optional" : False, "validate" : lambda x : x > 0},
+                     "SizePerEvent" : {"default" : 512.0, "type" : float,
+                                       "optional" : False, "validate" : lambda x : x > 0},
+                     "PeriodicHarvestInterval" : {"default" : 0, "type" : int,
+                                                  "validate" : lambda x : x >= 0},
+                     "DQMUploadProxy" : {"default" : None, "null" : True,
+                                         "attr" : "dqmUploadProxy"},
+                     "DQMUploadUrl" : {"default" : "https://cmsweb.cern.ch/dqm/dev",
+                                       "attr" : "dqmUploadUrl"},
+                     "DQMSequences" : {"default" : [], "type" : makeList,
+                                       "attr" : "dqmSequences"},
+                     "DQMConfigCacheID" : {"default" : None, "null" : True,
+                                           "attr" : "dqmConfigCacheID"},
+                     "EnableHarvesting" : {"default" : False, "type" : strToBool},
+                     "EnableNewStageout" : {"default" : False, "type" : strToBool},
+                     "IncludeParents" : {"default" : False,  "type" : strToBool},
+                     "Multicore" : {"default" : None, "null" : True,
+                                    "validate" : lambda x : x == "auto" or (int(x) > 0)},
+                     
+                     # this is specified automatically by reqmgr.
+#                      "RequestName" : {"default" : "AnotherRequest", "type" : str,
+#                                      "optional" : False, "validate" : None,
+#                                      "attr" : "requestName", "null" : False},
+                    "CouchURL" : {"default" : "http://localhost:5984", "type" : str,
+                                 "optional" : False, "validate" : couchurl,
+                                 "attr" : "couchURL", "null" : False},
+                    "CouchDBName" : {"default" : "dp_configcache", "type" : str,
+                                    "optional" : True, "validate" : identifier,
+                                    "attr" : "couchDBName", "null" : False},
+                    "ConfigCacheUrl" : {"default" : None, "type" : str,
+                                       "optional" : True, "validate" : None,
+                                       "attr" : "configCacheUrl", "null" : True},
+                    "CouchWorkloadDBName" : {"default" : "reqmgr_workload_cache", "type" : str,
+                                    "optional" : False, "validate" : identifier,
+                                    "attr" : "couchWorkloadDBName", "null" : False}}
+    
+    def loadSpecFromCouch(self, couchurl, requestName):
+        """
+        This depends on PersitencyHelper.py saveCouch (That method better be decomposed)
+        """
+        return self.load("%s/%s/spec" % (couchurl, requestName))
 
 class WMWorkload(ConfigSection):
     """

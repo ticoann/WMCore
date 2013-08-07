@@ -10,6 +10,7 @@ Created on Jun 13, 2013
 """
 
 from WMCore.WMException import WMException
+from WMCore.WMFactory import WMFactory
 
 class WMWorkloadToolsException(WMException):
     """
@@ -72,9 +73,10 @@ def parsePileupConfig(mcPileup, dataPileup):
 def _validateArgument(argument, value, argumentDefinition):
     validNull = argumentDefinition[argument]["null"]
     if not validNull and value is None:
-            return "Argument %s can't be None" % argument
+        return "Argument %s can't be None" % argument
     elif validNull and value is None:
-        continue
+        return
+    
     try:
         argType = argumentDefinition[argument]["type"]
         argType(value)
@@ -121,3 +123,11 @@ def validateArgumentsUpdate(arguments, argumentDefinition):
     for argument in arguments:
         _validateArgument(argument, arguments[argument], argumentDefinition)
     return
+
+def loadSpecByType(specType):        
+    factoryName = "%sWorkloadFactory" % specType
+    mod = __import__("WMCore.WMSpec.StdSpecs.%s" % specType,
+                     globals(), locals(), [factoryName])
+    specClass = getattr(mod, factoryName)
+    
+    return specClass()

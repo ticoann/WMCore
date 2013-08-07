@@ -106,3 +106,12 @@ REQUEST_STATUS_TRANSITION = [
 # each item from STATUS_TRANSITION is a dictionary with 1 item, the key
 # is name of the status
 REQUEST_STATUS_LIST = [s.keys()[0] for s in REQUEST_STATUS_TRANSITION]
+
+def check_allowed_transition(preStatus, postStatus):
+    statusList = REQUEST_STATUS_TRANSITION.get(preStatus, [])
+    if postStatus in statusList:
+        return True
+    else:
+        return False
+    
+    

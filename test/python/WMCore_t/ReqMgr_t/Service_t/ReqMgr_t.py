@@ -57,7 +57,7 @@ class ReqMgrTest(RESTBaseUnitTestWithDBBackend):
         RESTBaseUnitTestWithDBBackend.tearDown(self)
 
 
-    def testRequest(self):        
+    def testRequest(self):
         self.jsonSender.post('data/request', self.mcArgs)
         #TODO: need to make stale option disabled to have the correct record
         result = self.jsonSender.get('data/request?status=new&status=assigned&_nostale=true')[0]['result']
@@ -67,6 +67,9 @@ class ReqMgrTest(RESTBaseUnitTestWithDBBackend):
         self.jsonSender.get('data/request?prep_id=%s&_nostale=true' % self.mcArgs["PrepID"])[0]['result']
         print result
         self.jsonSender.get('data/request?campaign=%s&_nostale=true' % self.mcArgs["PrepID"])[0]['result']
+        print result[0]
+        data = {'RequestStatus': 'new'}
+        result = self.jsonSender.put('data/request/%s' % result[0], data)
         print result
         
 if __name__ == '__main__':

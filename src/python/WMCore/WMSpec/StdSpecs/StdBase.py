@@ -8,7 +8,7 @@ import logging
 
 from WMCore.Cache.WMConfigCache import ConfigCache, ConfigCacheException
 from WMCore.Configuration import ConfigSection
-from WMCore.Lexicon import lfnBase, identifier, acqname, cmsswversion, cmsname
+from WMCore.Lexicon import lfnBase, identifier, acqname, cmsswversion, cmsname, couchurl
 from WMCore.Services.Dashboard.DashboardReporter import DashboardReporter
 from WMCore.WMException import WMException
 from WMCore.WMSpec.WMWorkload import newWorkload
@@ -53,6 +53,7 @@ class StdBase(object):
         # Internal parameters
         self.workloadName = None
         self.multicoreNCores = None
+        self.schema = None
 
         return
 
@@ -64,12 +65,17 @@ class StdBase(object):
         method and pull out any that are setup by this base class.
         """
         self.workloadName = workloadName
+        self.schema = {}
         argumentDefinition = self.getWorkloadArguments()
         for arg in argumentDefinition:
             if arg in arguments:
-                setattr(self, argumentDefinition[arg]["attr"], argumentDefinition[arg]["type"](arguments[arg]))
+                value = argumentDefinition[arg]["type"](arguments[arg])
+                setattr(self, argumentDefinition[arg]["attr"], value)
+                self.schema[arg] = value
             elif argumentDefinition[arg]["optional"]:
-                setattr(self, argumentDefinition[arg]["attr"], argumentDefinition[arg]["default"])
+                defaultValue = argumentDefinition[arg]["default"]
+                setattr(self, argumentDefinition[arg]["attr"], defaultValue)
+                self.schema[arg] = defaultValue
 
         # Definition of parameters that depend on the value of others
         if hasattr(self, "multicore") and self.multicore:
@@ -199,6 +205,7 @@ class StdBase(object):
         workload.setProcessingString(processingStrings = self.processingString)
         workload.setValidStatus(validStatus = self.validStatus)
         workload.setPriority(self.priority)
+        workload.setCampaign(self.campaign)
         return workload
 
     def setupProcessingTask(self, procTask, taskType, inputDataset = None, inputStep = None,
@@ -780,6 +787,9 @@ class StdBase(object):
             return outputModuleInfo
 
         return
+    
+    def getSchema(self):
+        return self.schema
 
     @staticmethod
     def getWorkloadArguments():
@@ -828,6 +838,7 @@ class StdBase(object):
                      "VoGroup" : {"default" : "DEFAULT", "attr" : "owner_vogroup"},
                      "VoRole" : {"default" : "DEFAULT", "attr" : "owner_vorole"},
                      "AcquisitionEra" : {"default" : "None", "validate" : acqname},
+                     "Campaign" : {"default" : None, "optional" : True, "attr" : "campaign"},
                      "CMSSWVersion" : {"default" : "CMSSW_5_3_7", "validate" : cmsswversion,
                                        "optional" : False, "attr" : "frameworkVersion"},
                      "ScramArch" : {"default" : "slc5_amd64_gcc462", "optional" : False},
@@ -874,7 +885,24 @@ class StdBase(object):
                      "EnableNewStageout" : {"default" : False, "type" : strToBool},
                      "IncludeParents" : {"default" : False,  "type" : strToBool},
                      "Multicore" : {"default" : None, "null" : True,
-                                    "validate" : lambda x : x == "auto" or (int(x) > 0)}}
+                                    "validate" : lambda x : x == "auto" or (int(x) > 0)},
+                     
+                     # this is specified automatically by reqmgr.
+#                      "RequestName" : {"default" : "AnotherRequest", "type" : str,
+#                                      "optional" : False, "validate" : None,
+#                                      "attr" : "requestName", "null" : False},
+                    "CouchURL" : {"default" : "http://localhost:5984", "type" : str,
+                                 "optional" : False, "validate" : couchurl,
+                                 "attr" : "couchURL", "null" : False},
+                    "CouchDBName" : {"default" : "dp_configcache", "type" : str,
+                                    "optional" : True, "validate" : identifier,
+                                    "attr" : "couchDBName", "null" : False},
+                    "ConfigCacheUrl" : {"default" : None, "type" : str,
+                                       "optional" : True, "validate" : None,
+                                       "attr" : "configCacheUrl", "null" : True},
+                    "CouchWorkloadDBName" : {"default" : "reqmgr_workload_cache", "type" : str,
+                                    "optional" : False, "validate" : identifier,
+                                    "attr" : "couchWorkloadDBName", "null" : False}}
 
         # Set defaults for the argument specification
         for arg in arguments:
