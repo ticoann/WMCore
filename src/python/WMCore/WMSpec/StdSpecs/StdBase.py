@@ -69,9 +69,12 @@ class StdBase(object):
         argumentDefinition = self.getWorkloadArguments()
         for arg in argumentDefinition:
             if arg in arguments:
-                value = argumentDefinition[arg]["type"](arguments[arg])
-                setattr(self, argumentDefinition[arg]["attr"], value)
-                self.schema[arg] = value
+                if arguments[arg] is None:
+                    setattr(self, argumentDefinition[arg]["attr"], arguments[arg])
+                else:
+                    value = argumentDefinition[arg]["type"](arguments[arg])
+                    setattr(self, argumentDefinition[arg]["attr"], value)
+                    self.schema[arg] = value
             elif argumentDefinition[arg]["optional"]:
                 defaultValue = argumentDefinition[arg]["default"]
                 setattr(self, argumentDefinition[arg]["attr"], defaultValue)
@@ -206,6 +209,7 @@ class StdBase(object):
         workload.setValidStatus(validStatus = self.validStatus)
         workload.setPriority(self.priority)
         workload.setCampaign(self.campaign)
+        workload.setRequestType(self.requestType)
         return workload
 
     def setupProcessingTask(self, procTask, taskType, inputDataset = None, inputStep = None,
@@ -826,7 +830,9 @@ class StdBase(object):
 
         self.priority = arguments.get("RequestPriority", 0)
         """
-        arguments = {"RequestPriority": {"default" : 0, "type" : int,
+        arguments = {"RequestType" : {"default" : "unknown", "optional" : False,
+                                      "attr" : "requestType"},
+                     "RequestPriority": {"default" : 0, "type" : int,
                                          "optional" : False, "validate" : lambda x : (x >= 0 and x < 1e6),
                                          "attr" : "priority"},
                      "Requestor": {"default" : "unknown", "optional" : False,
@@ -886,6 +892,36 @@ class StdBase(object):
                      "IncludeParents" : {"default" : False,  "type" : strToBool},
                      "Multicore" : {"default" : None, "null" : True,
                                     "validate" : lambda x : x == "auto" or (int(x) > 0)},
+                     
+                     #from assignment: performance monitoring data
+                     "MaxRSS" : {"default" : 2411724, "type" : int, "validate" : lambda x : x > 0},
+                     "MaxVSize" : {"default" : 20411724, "type" : int, "validate" : lambda x : x > 0},
+                     "SoftTimeout" : {"default" : 129600, "type" : int, "validate" : lambda x : x > 0},
+                     "GracePeriod" : {"default" : 300, "type" : int, "validate" : lambda x : x > 0},
+                     "UseSiteListAsLocation" : {"default" : False, "type" : bool},
+                     
+                     # Set phedex subscription information
+                     "CustodialSites" : {"default" : [], "type" : makeList,
+                                        "validate" : lambda x: all([cmsname(y) for y in x])},
+                     "NonCustodialSites" : {"default" : [], "type" : makeList,
+                                        "validate" : lambda x: all([cmsname(y) for y in x])},
+                     "AutoApproveSubscriptionSites" : {"default" : [], "type" : makeList,
+                                        "validate" : lambda x: all([cmsname(y) for y in x])},
+                     # should be Low, Normal, High
+                     "SubscriptionPriority" : {"default" : "Low", "type" : str,
+                                        "validate" : lambda x: all([cmsname(y) for y in x])},
+                     # shouldbe Move Replica  
+                     "CustodialSubType" : {"default" : "Move", "type" : str,
+                                        "validate" : lambda x: all([cmsname(y) for y in x])},
+                     
+                     # Block closing informaiont
+                     "BlockCloseMaxWaitTime" : {"default" : 66400, "type" : int, "validate" : lambda x : x > 0},
+                     "BlockCloseMaxFiles" : {"default" : 500, "type" : int, "validate" : lambda x : x > 0},
+                     "BlockCloseMaxEvents" : {"default" : 25000000, "type" : int, "validate" : lambda x : x > 0},
+                     "BlockCloseMaxSize" : {"default" : 5000000000000, "type" : int, "validate" : lambda x : x > 0},
+                     
+                     # dashboard activity
+                     "DashboardActivity" : {"default" : "", "type" : str},
                      
                      # this is specified automatically by reqmgr.
 #                      "RequestName" : {"default" : "AnotherRequest", "type" : str,

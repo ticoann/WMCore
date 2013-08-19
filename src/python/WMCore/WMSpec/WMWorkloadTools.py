@@ -124,10 +124,15 @@ def validateArgumentsUpdate(arguments, argumentDefinition):
         _validateArgument(argument, arguments[argument], argumentDefinition)
     return
 
-def loadSpecByType(specType):        
+def loadSpecClassByType(specType):        
     factoryName = "%sWorkloadFactory" % specType
     mod = __import__("WMCore.WMSpec.StdSpecs.%s" % specType,
                      globals(), locals(), [factoryName])
     specClass = getattr(mod, factoryName)
     
+    return specClass
+
+def loadSpecByType(specType):        
+    specClass = loadSpecClassByType(specType)
     return specClass()
+

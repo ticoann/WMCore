@@ -9,6 +9,7 @@ of related tasks.
 from WMCore.Configuration import ConfigSection
 from WMCore.WMSpec.ConfigSectionTree import findTop
 from WMCore.WMSpec.Persistency import PersistencyHelper
+from WMCore.WMSpec.WMWorkloadTools import validateArgumentsUpdate, loadSpecClassByType
 from WMCore.WMSpec.WMTask import WMTask, WMTaskHelper
 from WMCore.Lexicon import lfnBase, sanitizeURL
 from WMCore.WMException import WMException
@@ -87,6 +88,12 @@ class WMWorkloadHelper(PersistencyHelper):
         self.data._internal_name = workloadName
         return
 
+    def requestType(self):
+        return self.data.requstType
+    
+    def setRequestType(self, requestType):
+        self.data.requstType = requestType
+        
     def getInitialJobCount(self):
         """
         _getInitialJobCount_
@@ -1625,162 +1632,96 @@ class WMWorkloadHelper(PersistencyHelper):
             return task.inputLocationFlag()
         return False
     
-    def setAssignmentArgs(self, args):
+    def validateArgument(self, schema):
+        specClass = loadSpecClassByType(self.requestType())
+        argumentDefinition = specClass.getWorkloadArguments()
+        msg = validateArgumentsUpdate(schema, argumentDefinition)
+        if msg is not None:
+            from WMCore.WMSpec.StdSpecs.StdBase import WMSpecFactoryException
+            raise WMSpecFactoryException(message = msg)
+        return
+    
+    def updateArguments(self, kwargs):
         """
         set up all the argument related to assigning request.
         args are validated before update.
         assignment is common for all different types spec.
         """
         
-        processedDatasetParts = ["AcquisitionEra", "ProcessingVersion"]
-        if args.get("ProcessingString", None):
-            processedDatasetParts.append("ProcessingString")
-        for field in processedDatasetParts:
-            if type(args[field]) == dict:
-                for value in args[field].values():
-                    self.validate(value, field)
-            else:
-                self.validate(args[field], field)
-
-        # Set white list and black list
-        whiteList = args.get("SiteWhitelist", [])
-        blackList = args.get("SiteBlacklist", [])
-        self.setSiteWildcardsLists(siteWhitelist = whiteList, siteBlacklist = blackList,
-                                     wildcardDict = self.wildcardSites)
+        if kwargs.get("SiteWhitelist") or kwargs.get("SiteBlacklist"):
+            self.setSiteWildcardsLists(siteWhitelist = kwargs["SiteWhitelist"], 
+                                       siteBlacklist = kwargs["SiteBlacklist"],
+                                       wildcardDict = self.wildcardSites)
         # Set ProcessingVersion and AcquisitionEra, which could be json encoded dicts
-        self.setProcessingVersion(args["ProcessingVersion"])
-        self.setAcquisitionEra(args["AcquisitionEra"])
-        self.setProcessingString(args.get("ProcessingString", None))
+        if kwargs.get("ProcessingVersion"):
+            self.setProcessingVersion(kwargs["ProcessingVersion"])
+        if kwargs.get("AcquisitionEra"):
+            self.setAcquisitionEra(kwargs["AcquisitionEra"])
+        if kwargs.get("ProcessingString"):    
+            self.setProcessingString(kwargs["ProcessingString"])
         #FIXME not validated
-        self.setLFNBase(args["MergedLFNBase"], args["UnmergedLFNBase"])
-        self.setMergeParameters(int(args.get("MinMergeSize", 2147483648)),
-                                  int(args.get("MaxMergeSize", 4294967296)),
-                                  int(args.get("MaxMergeEvents", 50000)))
-        self.setupPerformanceMonitoring(int(args.get("maxRSS", 2411724)),
-                                          int(args.get("maxVSize", 20411724)),
-                                          int(args.get("SoftTimeout", 129600)),
-                                          int(args.get("GracePeriod", 300)))
+        if kwargs.get("MergedLFNBase") or kwargs.get("MergedLFNBase"):
+            self.setLFNBase(kwargs["MergedLFNBase"], kwargs["UnmergedLFNBase"])
+        
+        self.setMergeParameters(int(kwargs.get("MinMergeSize", 2147483648)),
+                                  int(kwargs.get("MaxMergeSize", 4294967296)),
+                                  int(kwargs.get("MaxMergeEvents", 50000)))
+        self.setupPerformanceMonitoring(int(kwargs.get("MaxRSS", 2411724)),
+                                          int(kwargs.get("MaxVSize", 20411724)),
+                                          int(kwargs.get("SoftTimeout", 129600)),
+                                          int(kwargs.get("GracePeriod", 300)))
+        
+        # Check whether we should check location for the data
+        if kwargs.get("useSiteListAsLocation"):
+            self.setLocationDataSourceFlag()
 
-        return args
+        # Set phedex subscription information
+        custodialList = kwargs.get("CustodialSites", [])
+        nonCustodialList = kwargs.get("NonCustodialSites", [])
+        autoApproveList = kwargs.get("AutoApproveSubscriptionSites", [])
+        subscriptionPriority = kwargs.get("SubscriptionPriority", "Low")
+        subscriptionType = kwargs.get("CustodialSubType", "Move")
+        
+        self.setSubscriptionInformationWildCards(wildcardDict = self.wildcardSites,
+                                                   custodialSites = custodialList,
+                                                   nonCustodialSites = nonCustodialList,
+                                                   autoApproveSites = autoApproveList,
+                                                   custodialSubType = subscriptionType,
+                                                   priority = subscriptionPriority)
+
+        # Block closing information
+        blockCloseMaxWaitTime = int(kwargs.get("BlockCloseMaxWaitTime", self.getBlockCloseMaxWaitTime()))
+        blockCloseMaxFiles = int(kwargs.get("BlockCloseMaxFiles", self.getBlockCloseMaxFiles()))
+        blockCloseMaxEvents = int(kwargs.get("BlockCloseMaxEvents", self.getBlockCloseMaxEvents()))
+        blockCloseMaxSize = int(kwargs.get("BlockCloseMaxSize", self.getBlockCloseMaxSize()))
+
+        self.setBlockCloseSettings(blockCloseMaxWaitTime, blockCloseMaxFiles,
+                                     blockCloseMaxEvents, blockCloseMaxSize)
+
+        self.setDashboardActivity(kwargs.get("DashboardActivity", ""))
+        
+        
+        ## this needs to be done outside the function
+#         Utilities.saveWorkload(helper, request['RequestWorkflow'], self.wmstatWriteURL)
+#         
+#         # update AcquisitionEra in the Couch document (#4380)
+#         # request object returned above from Oracle doesn't have information Couch
+#         # database
+#         reqDetails = Utilities.requestDetails(request["RequestName"])
+#         couchDb = Database(reqDetails["CouchWorkloadDBName"], reqDetails["CouchURL"])
+#         couchDb.updateDocument(request["RequestName"], "ReqMgr", "updaterequest",
+#                                fields={"AcquisitionEra": reqDetails["AcquisitionEra"]})
+
+
+        return kwargs
     
-    @staticmethod
-    def getAssignmentArguments():
-        """
-        _getAssignmentArguments_
-
-        This represents the authorative list of request arguments that are
-        interpreted by the current spec class. 
-        The list is formatted as a 2-level dictionary, the keys in the first level
-        are the identifiers for the arguments processed by the current spec.
-        The second level dictionary contains the information about that argument for
-        validation:
-
-        - default: Gives a default value if not provided,
-                   this default value usually is good enough for a standard workflow. If the argument is not optional
-                   and a default value is provided, this is only meant for test purposes.
-        - type: A function that verifies the type of the argument, it may also cast it into the appropiate python type.    
-                If the input is not compatible with the expected type, this method must throw an exception.
-        - optional: This boolean value indicates if the value must be provided or not
-        - validate: A function which validates the input after type casting,
-                    it returns True if the input is valid, it can throw exceptions on invalid input.
-        - attr: This represents the name of the attribute corresponding to the argument in the WMSpec object.
-        - null: This indicates if the argument can have None as its value.
-        Example:
-        {
-            RequestPriority : {'default' : 0,
-                               'type' : int,
-                               'optional' : False,
-                               'validate' : lambda x : x > 0,
-                               'attr' : 'priority',
-                               'null' : False}
-        }
-        This replaces the old syntax in the __call__ of:
-
-        self.priority = arguments.get("RequestPriority", 0)
-        """
-        arguments = {"RequestPriority": {"default" : 0, "type" : int,
-                                         "optional" : False, "validate" : lambda x : (x >= 0 and x < 1e6),
-                                         "attr" : "priority"},
-                     "Requestor": {"default" : "unknown", "optional" : False,
-                                   "attr" : "owner"},
-                     "RequestorDN" : {"default" : "unknown", "optional" : False,
-                                      "attr" : "owner_dn"},
-                     "Group" : {"default" : "unknown", "optional" : False,
-                                "attr" : "group"},
-                     "VoGroup" : {"default" : "DEFAULT", "attr" : "owner_vogroup"},
-                     "VoRole" : {"default" : "DEFAULT", "attr" : "owner_vorole"},
-                     "AcquisitionEra" : {"default" : "None", "validate" : acqname},
-                     "Campaign" : {"default" : None, "optional" : True, "attr" : "campaign"},
-                     "CMSSWVersion" : {"default" : "CMSSW_5_3_7", "validate" : cmsswversion,
-                                       "optional" : False, "attr" : "frameworkVersion"},
-                     "ScramArch" : {"default" : "slc5_amd64_gcc462", "optional" : False},
-                     "ProcessingVersion" : {"default" : 0, "type" : int},
-                     "ProcessingString" : {"default" : None, "null" : True},
-                     "SiteBlacklist" : {"default" : [], "type" : makeList,
-                                        "validate" : lambda x: all([cmsname(y) for y in x])},
-                     "SiteWhitelist" : {"default" : [], "type" : makeList,
-                                        "validate" : lambda x: all([cmsname(y) for y in x])},
-                     "UnmergedLFNBase" : {"default" : "/store/unmerged"},
-                     "MergedLFNBase" : {"default" : "/store/data"},
-                     "MinMergeSize" : {"default" : 2 * 1024 * 1024 * 1024, "type" : int,
-                                       "validate" : lambda x : x > 0},
-                     "MaxMergeSize" : {"default" : 4 * 1024 * 1024 * 1024, "type" : int,
-                                       "validate" : lambda x : x > 0},
-                     "MaxWaitTime" : {"default" : 24 * 3600, "type" : int,
-                                      "validate" : lambda x : x > 0},
-                     "MaxMergeEvents" : {"default" : 100000, "type" : int,
-                                         "validate" : lambda x : x > 0},
-                     "ValidStatus" : {"default" : "PRODUCTION"},
-                     "DbsUrl" : {"default" : "http://cmsdbsprod.cern.ch/cms_dbs_prod_global/servlet/DBSServlet"},
-                     "DashboardHost" : {"default" : "cms-wmagent-job.cern.ch"},
-                     "DashboardPort" : {"default" : 8884, "type" : int,
-                                        "validate" : lambda x : x > 0},
-                     "OverrideCatalog" : {"default" : None, "null" : True},
-                     "RunNumber" : {"default" : 0, "type" : int},
-                     "TimePerEvent" : {"default" : 12.0, "type" : float,
-                                       "optional" : False, "validate" : lambda x : x > 0},
-                     "Memory" : {"default" : 2300.0, "type" : float,
-                                 "optional" : False, "validate" : lambda x : x > 0},
-                     "SizePerEvent" : {"default" : 512.0, "type" : float,
-                                       "optional" : False, "validate" : lambda x : x > 0},
-                     "PeriodicHarvestInterval" : {"default" : 0, "type" : int,
-                                                  "validate" : lambda x : x >= 0},
-                     "DQMUploadProxy" : {"default" : None, "null" : True,
-                                         "attr" : "dqmUploadProxy"},
-                     "DQMUploadUrl" : {"default" : "https://cmsweb.cern.ch/dqm/dev",
-                                       "attr" : "dqmUploadUrl"},
-                     "DQMSequences" : {"default" : [], "type" : makeList,
-                                       "attr" : "dqmSequences"},
-                     "DQMConfigCacheID" : {"default" : None, "null" : True,
-                                           "attr" : "dqmConfigCacheID"},
-                     "EnableHarvesting" : {"default" : False, "type" : strToBool},
-                     "EnableNewStageout" : {"default" : False, "type" : strToBool},
-                     "IncludeParents" : {"default" : False,  "type" : strToBool},
-                     "Multicore" : {"default" : None, "null" : True,
-                                    "validate" : lambda x : x == "auto" or (int(x) > 0)},
-                     
-                     # this is specified automatically by reqmgr.
-#                      "RequestName" : {"default" : "AnotherRequest", "type" : str,
-#                                      "optional" : False, "validate" : None,
-#                                      "attr" : "requestName", "null" : False},
-                    "CouchURL" : {"default" : "http://localhost:5984", "type" : str,
-                                 "optional" : False, "validate" : couchurl,
-                                 "attr" : "couchURL", "null" : False},
-                    "CouchDBName" : {"default" : "dp_configcache", "type" : str,
-                                    "optional" : True, "validate" : identifier,
-                                    "attr" : "couchDBName", "null" : False},
-                    "ConfigCacheUrl" : {"default" : None, "type" : str,
-                                       "optional" : True, "validate" : None,
-                                       "attr" : "configCacheUrl", "null" : True},
-                    "CouchWorkloadDBName" : {"default" : "reqmgr_workload_cache", "type" : str,
-                                    "optional" : False, "validate" : identifier,
-                                    "attr" : "couchWorkloadDBName", "null" : False}}
     
     def loadSpecFromCouch(self, couchurl, requestName):
         """
         This depends on PersitencyHelper.py saveCouch (That method better be decomposed)
         """
         return self.load("%s/%s/spec" % (couchurl, requestName))
+    
 
 class WMWorkload(ConfigSection):
     """
@@ -1837,6 +1778,10 @@ class WMWorkload(ConfigSection):
         self.section_("tasks")
         self.tasks.tasklist = []
 
+        #  worklaod spec type
+        self.section_("request_type")
+        self.requestType = ""
+        
         self.sandbox = None
         self.initialJobCount = 0
 

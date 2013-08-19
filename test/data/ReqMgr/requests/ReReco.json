@@ -19,7 +19,7 @@
         "TimePerEvent": 12,
 		"Memory": 2394,
         "SizePerEvent":500,
-		"InputDataset": "InputDataset-OVERRIDE-ME",
+		"InputDataset": "/InputDataset-OVERRIDE-ME/Processing/Tier",
         "nskims": 1,
         "SkimName1": "2011B_442p2_DataReprocessingBTagSkim",
         "SkimInput1": "RECOoutput",
