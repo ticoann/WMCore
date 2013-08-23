@@ -19,7 +19,7 @@ import time
 import cherrypy
 from WMCore.ReqMgr.DataStructs.RequestStatus import REQUEST_START_STATE
 
-def initialize_request_args(request, config):
+def initialize_request_args(request, config, clone = False):
     """
     Request data class request is a dictionary representing
     a being injected / created request. This method initializes
@@ -31,33 +31,35 @@ def initialize_request_args(request, config):
     request is changed here.
     
     """ 
-    #update the information from config
-    request["CouchURL"] = config.couch_host
-    request["CouchWorkloadDBName"] = config.couch_reqmgr_db
-    request["CouchDBName"] = config.couch_config_cache_db
     
     #user information for cert. (which is converted to cherry py log in)
     request["Requestor"] = cherrypy.request.user["login"]
     request["RequestorDN"] = cherrypy.request.user.get("dn", "unknown")
+    
     # assign first starting status, should be 'new'
     request["RequestStatus"] = REQUEST_START_STATE 
     request["RequestTransition"] = [{"Status": request["RequestStatus"], "UpdateTime": int(time.time())}]
+    request["RequestDate"] = list(time.gmtime()[:6])
     
     #TODO: generate this automatically from the spec
     # generate request name using request
     generateRequestName(request)
     
-    request["RequestDate"] = list(time.gmtime()[:6])
-    
-    request.setdefault("SoftwareVersions", [])
-    if request["CMSSWVersion"] and (request["CMSSWVersion"] not in request["SoftwareVersions"]):
-        request["SoftwareVersions"].append(request["CMSSWVersion"])
+    if not clone:
+        #update the information from config
+        request["CouchURL"] = config.couch_host
+        request["CouchWorkloadDBName"] = config.couch_reqmgr_db
+        request["CouchDBName"] = config.couch_config_cache_db
         
-    # TODO
-    # do we need InputDataset and InputDatasets? when one is just a list
-    # containing the other? ; could be related to #3743 problem
-    if request.has_key("InputDataset"):
-        request["InputDatasets"] = [request["InputDataset"]]
+        request.setdefault("SoftwareVersions", [])
+        if request["CMSSWVersion"] and (request["CMSSWVersion"] not in request["SoftwareVersions"]):
+            request["SoftwareVersions"].append(request["CMSSWVersion"])
+            
+        # TODO
+        # do we need InputDataset and InputDatasets? when one is just a list
+        # containing the other? ; could be related to #3743 problem
+        if request.has_key("InputDataset"):
+            request["InputDatasets"] = [request["InputDataset"]]
 
 def generateRequestName(request):
     

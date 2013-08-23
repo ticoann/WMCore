@@ -124,6 +124,15 @@ def validateArgumentsUpdate(arguments, argumentDefinition):
         _validateArgument(argument, arguments[argument], argumentDefinition)
     return
 
+def setArgumentsNoneValueWithDefault(arguments, argumentDefinition):
+    """
+    sets the default value if arguments value is specified as None
+    """
+    for argument in arguments:
+        if arguments[argument] == None:
+            argumentDefinition[argument]["default"]
+    return
+
 def loadSpecClassByType(specType):        
     factoryName = "%sWorkloadFactory" % specType
     mod = __import__("WMCore.WMSpec.StdSpecs.%s" % specType,

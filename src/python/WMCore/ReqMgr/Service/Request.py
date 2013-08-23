@@ -35,7 +35,7 @@ class Request(RESTEntity):
         self.reqmgr_db = api.db_handler.get_db(config.couch_reqmgr_db)
         # this need for the post validtiaon 
         self.reqmgr_aux_db = api.db_handler.get_db(config.couch_reqmgr_aux_db)
-    
+        
     def validate(self, apiobj, method, api, param, safe):
         # to make validate successful
         # move the validated argument to safe
@@ -70,8 +70,12 @@ class Request(RESTEntity):
         TODO: rasie right kind of error with clear message 
         """
         #convert request.body to json (python dict)
-        request_args = JsonWrapper.loads(cherrypy.request.body.read())
-        
+        data = cherrypy.request.body.read()
+        if data:
+            request_args = JsonWrapper.loads(data)
+        else:
+            request_args = {}
+            
         if len(param.args) == 2:
             #validate clone case
             if param.args[0] == "clone":
@@ -111,7 +115,7 @@ class Request(RESTEntity):
             args_without_status = request_args
         # validate the arguments against the spec argumentSpecdefinition
         workload.validateArgument(args_without_status)
-        # after validtion clear the param
+
         safe.kwargs['workload'] = workload
         safe.kwargs['request_args'] = request_args
         return 
@@ -156,9 +160,9 @@ class Request(RESTEntity):
     
     def initialize_clone(self, request_name):
         requests = self._get_request_by_name(request_name)
-        clone_args = requests.values()
+        clone_args = requests.values()[0]
         # overwrite the name and time stamp.
-        generateRequestName(clone_args)
+        initialize_request_args(clone_args, self.config, clone=True)
         # timestamp status update
         
         spec = loadSpecByType(clone_args["RequestType"])
@@ -205,7 +209,7 @@ class Request(RESTEntity):
         if status and not team:
             request_info.append(self.get_reqmgr_view("bystatus" , option, status))
         if status and team:
-            request_info.append(self.get_reqmgr_view("byteamandstatus", option, team))
+            request_info.append(self.get_reqmgr_view("byteamandstatus", option, [[team, status]]))
         if name:
             request_info.append(self._get_request_by_name(name))
         if prep_id:
@@ -250,9 +254,17 @@ class Request(RESTEntity):
         request_info = {}
         for item in result["rows"]:
             request_info[item["id"]] = item.get('doc', None)
+            if request_info[item["id"]] != None:
+                self.filterCouchInfo(request_info[item["id"]])
         return request_info
     
     
+    #TODO move this out of this class
+    def filterCouchInfo(self, couchInfo):
+        del couchInfo["_rev"]
+        del couchInfo["_id"]
+        del couchInfo["_attachments"]
+                
     def get_reqmgr_view(self, view, options, keys):
         return self._get_couch_view(self.reqmgr_db, "ReqMgr", view,
                                     options, keys)
@@ -267,6 +279,7 @@ class Request(RESTEntity):
         TODO: names can be regular expression or list of names
         """
         request_doc = self.reqmgr_db.document(name)
+        self.filterCouchInfo(request_doc)
         return {name: request_doc}
         
     def _combine_request(self, request_info, requestAgentUrl, cache):
@@ -287,20 +300,19 @@ class Request(RESTEntity):
     @restcall
     def put(self, workload, request_args):
         
-        if workload == 0:
+        if workload == None:
             (workload, request_args) = self.initialize_clone(request_args["OriginalRequestName"])
-            self.post(workload, request_args)
-            return 
+            return self.post(workload, request_args)
         
-        cherrypy.log("INFO:  '%s  -- %s' ..." % (workload.name(), request_args))
         # if is not just updating status
         if len(request_args) > 1 or not request_args.has_key("RequestStatus"):
             workload.updateArguments(request_args)
-            workload.saveCouchUrl(self.config.couch_host, self.config.couch_reqmgr_db)
-            # set the worklaad helper using paramenter
-        # save back to spec and ouch
-        return self.reqmgr_db.updateDocument(workload.name(), "ReqMgr", "updaterequest",
+            # trailing / is needed for the savecouchUrl function
+            workload.saveCouch(self.config.couch_host, self.config.couch_reqmgr_db)
+        
+        report = self.reqmgr_db.updateDocument(workload.name(), "ReqMgr", "updaterequest",
                                              fields=request_args)
+        return report 
     
     @restcall
     def delete(self, request_name):

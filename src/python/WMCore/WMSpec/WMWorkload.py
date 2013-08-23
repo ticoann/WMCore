@@ -9,7 +9,8 @@ of related tasks.
 from WMCore.Configuration import ConfigSection
 from WMCore.WMSpec.ConfigSectionTree import findTop
 from WMCore.WMSpec.Persistency import PersistencyHelper
-from WMCore.WMSpec.WMWorkloadTools import validateArgumentsUpdate, loadSpecClassByType
+from WMCore.WMSpec.WMWorkloadTools import validateArgumentsUpdate, \
+                        loadSpecClassByType, setArgumentsNoneValueWithDefault
 from WMCore.WMSpec.WMTask import WMTask, WMTaskHelper
 from WMCore.Lexicon import lfnBase, sanitizeURL
 from WMCore.WMException import WMException
@@ -1641,77 +1642,92 @@ class WMWorkloadHelper(PersistencyHelper):
             raise WMSpecFactoryException(message = msg)
         return
     
-    def updateArguments(self, kwargs):
+    def _checkKeys(self, kwargs, keys):
+        """
+        check whether list of keys exist in the kwargs 
+        if no keys exist return False
+        if all keys exist return True
+        if partial keys exsit raise Exception
+        """
+        if type(keys) == str:
+            keys = [keys]
+        validKey = 0
+        for key in keys:
+            if kwargs.has_key(key):
+                validKey += 1
+        if validKey == 0:
+            return False
+        elif validKey == len(keys):
+            return True
+        else:
+            #TODO raise proper exception
+            raise Exception("not all the key is specified %s" % keys)
+         
+    def updateArguments(self, kwargs, wildcardSites = {}):
         """
         set up all the argument related to assigning request.
         args are validated before update.
         assignment is common for all different types spec.
         """
         
-        if kwargs.get("SiteWhitelist") or kwargs.get("SiteBlacklist"):
+        specClass = loadSpecClassByType(self.requestType())
+        argumentDefinition = specClass.getWorkloadArguments()
+        setArgumentsNoneValueWithDefault(kwargs, argumentDefinition)
+        
+        if self._checkKeys(kwargs, ["SiteWhitelist", "SiteBlacklist"]):
             self.setSiteWildcardsLists(siteWhitelist = kwargs["SiteWhitelist"], 
                                        siteBlacklist = kwargs["SiteBlacklist"],
-                                       wildcardDict = self.wildcardSites)
+                                       wildcardDict = wildcardSites)
         # Set ProcessingVersion and AcquisitionEra, which could be json encoded dicts
-        if kwargs.get("ProcessingVersion"):
+        if self._checkKeys(kwargs, "ProcessingVersion"):
             self.setProcessingVersion(kwargs["ProcessingVersion"])
-        if kwargs.get("AcquisitionEra"):
+        if self._checkKeys(kwargs, "AcquisitionEra"):
             self.setAcquisitionEra(kwargs["AcquisitionEra"])
-        if kwargs.get("ProcessingString"):    
+        if self._checkKeys(kwargs, "ProcessingString"):    
             self.setProcessingString(kwargs["ProcessingString"])
+        
         #FIXME not validated
-        if kwargs.get("MergedLFNBase") or kwargs.get("MergedLFNBase"):
+        if self._checkKeys(kwargs, ["MergedLFNBase", "MergedLFNBase"]):
             self.setLFNBase(kwargs["MergedLFNBase"], kwargs["UnmergedLFNBase"])
         
-        self.setMergeParameters(int(kwargs.get("MinMergeSize", 2147483648)),
-                                  int(kwargs.get("MaxMergeSize", 4294967296)),
-                                  int(kwargs.get("MaxMergeEvents", 50000)))
-        self.setupPerformanceMonitoring(int(kwargs.get("MaxRSS", 2411724)),
-                                          int(kwargs.get("MaxVSize", 20411724)),
-                                          int(kwargs.get("SoftTimeout", 129600)),
-                                          int(kwargs.get("GracePeriod", 300)))
+        if self._checkKeys(kwargs, ["MinMergeSize", "MaxMergeSize", "MaxMergeEvents"]):
+            self.setMergeParameters(int(kwargs["MinMergeSize"]),
+                                    int(kwargs["MaxMergeSize"]),
+                                    int(kwargs["MaxMergeEvents"]))
+        
+        if self._checkKeys(kwargs, ["MaxRSS", "MaxVSize", "SoftTimeout", "GracePeriod"]):              
+            self.setupPerformanceMonitoring(int(kwargs["MaxRSS"]),
+                                          int(kwargs["MaxVSize"]),
+                                          int(kwargs["SoftTimeout"]),
+                                          int(kwargs["GracePeriod"]))
         
         # Check whether we should check location for the data
-        if kwargs.get("useSiteListAsLocation"):
+        if self._checkKeys(kwargs, "useSiteListAsLocation"):
             self.setLocationDataSourceFlag()
 
         # Set phedex subscription information
-        custodialList = kwargs.get("CustodialSites", [])
-        nonCustodialList = kwargs.get("NonCustodialSites", [])
-        autoApproveList = kwargs.get("AutoApproveSubscriptionSites", [])
-        subscriptionPriority = kwargs.get("SubscriptionPriority", "Low")
-        subscriptionType = kwargs.get("CustodialSubType", "Move")
         
-        self.setSubscriptionInformationWildCards(wildcardDict = self.wildcardSites,
-                                                   custodialSites = custodialList,
-                                                   nonCustodialSites = nonCustodialList,
-                                                   autoApproveSites = autoApproveList,
-                                                   custodialSubType = subscriptionType,
-                                                   priority = subscriptionPriority)
+        if self._checkKeys(kwargs, ["CustodialSites", "NonCustodialSites", 
+                                    "AutoApproveSubscriptionSites", 
+                                    "CustodialSubType", "SubscriptionPriority"]):
+            self.setSubscriptionInformationWildCards(wildcardDict = wildcardSites,
+                                        custodialSites = kwargs["CustodialSites"],
+                                        nonCustodialSites = kwargs["NonCustodialSites"],
+                                        autoApproveSites = kwargs["AutoApproveSubscriptionSites"],
+                                        custodialSubType = kwargs["CustodialSubType"],
+                                        priority = kwargs["SubscriptionPriority"])
 
         # Block closing information
-        blockCloseMaxWaitTime = int(kwargs.get("BlockCloseMaxWaitTime", self.getBlockCloseMaxWaitTime()))
-        blockCloseMaxFiles = int(kwargs.get("BlockCloseMaxFiles", self.getBlockCloseMaxFiles()))
-        blockCloseMaxEvents = int(kwargs.get("BlockCloseMaxEvents", self.getBlockCloseMaxEvents()))
-        blockCloseMaxSize = int(kwargs.get("BlockCloseMaxSize", self.getBlockCloseMaxSize()))
+        if self._checkKeys(kwargs, ["BlockCloseMaxWaitTime", "BlockCloseMaxFiles", 
+                                    "BlockCloseMaxEvents", "BlockCloseMaxSize"]):
+            self.setBlockCloseSettings(kwargs["BlockCloseMaxWaitTime"],
+                                       kwargs["BlockCloseMaxFiles"],
+                                       kwargs["BlockCloseMaxEvents"], 
+                                       kwargs["BlockCloseMaxSize"])
 
-        self.setBlockCloseSettings(blockCloseMaxWaitTime, blockCloseMaxFiles,
-                                     blockCloseMaxEvents, blockCloseMaxSize)
-
-        self.setDashboardActivity(kwargs.get("DashboardActivity", ""))
+        if self._checkKeys(kwargs, "DashboardActivity"):
+            self.setDashboardActivity(kwargs["DashboardActivity"])
         
-        
-        ## this needs to be done outside the function
-#         Utilities.saveWorkload(helper, request['RequestWorkflow'], self.wmstatWriteURL)
-#         
-#         # update AcquisitionEra in the Couch document (#4380)
-#         # request object returned above from Oracle doesn't have information Couch
-#         # database
-#         reqDetails = Utilities.requestDetails(request["RequestName"])
-#         couchDb = Database(reqDetails["CouchWorkloadDBName"], reqDetails["CouchURL"])
-#         couchDb.updateDocument(request["RequestName"], "ReqMgr", "updaterequest",
-#                                fields={"AcquisitionEra": reqDetails["AcquisitionEra"]})
-
 
         return kwargs
     

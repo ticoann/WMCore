@@ -922,21 +922,23 @@ class StdBase(object):
                      
                      # dashboard activity
                      "DashboardActivity" : {"default" : "", "type" : str},
+                     # team name
+                     "Team" : {"default" : "", "type" : str},
                      
                      # this is specified automatically by reqmgr.
 #                      "RequestName" : {"default" : "AnotherRequest", "type" : str,
 #                                      "optional" : False, "validate" : None,
 #                                      "attr" : "requestName", "null" : False},
-                    "CouchURL" : {"default" : "http://localhost:5984", "type" : str,
+                     "CouchURL" : {"default" : "http://localhost:5984", "type" : str,
                                  "optional" : False, "validate" : couchurl,
                                  "attr" : "couchURL", "null" : False},
-                    "CouchDBName" : {"default" : "dp_configcache", "type" : str,
+                     "CouchDBName" : {"default" : "dp_configcache", "type" : str,
                                     "optional" : True, "validate" : identifier,
                                     "attr" : "couchDBName", "null" : False},
-                    "ConfigCacheUrl" : {"default" : None, "type" : str,
+                     "ConfigCacheUrl" : {"default" : None, "type" : str,
                                        "optional" : True, "validate" : None,
                                        "attr" : "configCacheUrl", "null" : True},
-                    "CouchWorkloadDBName" : {"default" : "reqmgr_workload_cache", "type" : str,
+                     "CouchWorkloadDBName" : {"default" : "reqmgr_workload_cache", "type" : str,
                                     "optional" : False, "validate" : identifier,
                                     "attr" : "couchWorkloadDBName", "null" : False}}
 
