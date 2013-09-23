@@ -71,8 +71,6 @@ class AnalyticsPoller(BaseWorkerThread):
         get information from wmbs, workqueue and local couch
         """
         try:
-            logging.info("Getting Agent info ...")
-            agentInfo = self.collectAgentInfo()
             
             #jobs per request info
             logging.info("Getting Job Couch Data ...")
@@ -110,8 +108,6 @@ class AnalyticsPoller(BaseWorkerThread):
             #set the uploadTime - should be the same for all docs
             uploadTime = int(time.time())
             
-            self.uploadAgentInfoToCentralWMStats(agentInfo, uploadTime)
-            
             logging.info("%s requests Data combined,\n uploading request data..." % len(combinedRequests))
             requestDocs = convertToRequestCouchDoc(combinedRequests, fwjrInfoFromCouch, finishedTasks,
                                                    self.agentInfo, uploadTime, self.summaryLevel)
@@ -127,36 +123,6 @@ class AnalyticsPoller(BaseWorkerThread):
             logging.error("Error occurred, will retry later:")
             logging.error(str(ex))
             logging.error("Trace back: \n%s" % traceback.format_exc())
-    
-    def collectAgentInfo(self):
-        #TODO: agent info (need to include job Slots for the sites)
-        # always checks couch first
-        source = self.config.JobStateMachine.jobSummaryDBName
-        target = self.config.AnalyticsDataCollector.centralWMStatsURL
-        couchInfo = self.localCouchServer.recoverReplicationErrors(source, target)
-        logging.info("getting couchdb replication status: %s" % couchInfo)
-        
-        agentInfo = self.wmagentDB.getComponentStatus(self.config)
-        agentInfo.update(self.agentInfo)
-        
-        if (couchInfo['status'] != 'ok'):
-            agentInfo['down_components'].append("CouchServer")
-            agentInfo['status'] = couchInfo['status']
-            couchInfo['name'] = "CouchServer"
-            agentInfo['down_component_detail'].append(couchInfo)
-        
-        if isDrainMode():
-            logging.info("Agent is in DrainMode")
-            agentInfo['drain_mode'] = True
-            agentInfo['status'] = "warning"
-        else:
-            agentInfo['drain_mode'] = False
             
-        return agentInfo
-
-    def uploadAgentInfoToCentralWMStats(self, agentInfo, uploadTime):
-        #direct data upload to the remote to prevent data conflict when agent is cleaned up and redeployed
-        agentDocs = convertToAgentCouchDoc(agentInfo, self.config.ACDC, uploadTime)
-        self.centralWMStatsCouchDB.updateAgentInfo(agentDocs)
-        logging.info("Agent data direct upload success\n %s request" % len(agentDocs))
-
+            
+    
