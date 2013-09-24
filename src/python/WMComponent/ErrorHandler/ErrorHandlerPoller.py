@@ -153,7 +153,7 @@ class ErrorHandlerPoller(BaseWorkerThread):
         #Now to actually do something.
         logging.debug("About to propagate jobs")
         self.changeState.propagate(exhaustJobs, 'exhausted', \
-                                   '%sfailed' %(jobType))
+                                   '%sfailed' %(jobType), updatesummary = True)
         self.changeState.propagate(cooloffJobs, '%scooloff' %(jobType), \
                                    '%sfailed' %(jobType), updatesummary = True)
         if len(passJobs) > 0:
