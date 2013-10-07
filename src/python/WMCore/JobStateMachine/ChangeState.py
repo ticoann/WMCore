@@ -243,13 +243,17 @@ class ChangeState(WMObject, WMConnectionBase):
             if updatesummary:
                 jobSummaryId = job["name"]
                 updateUri = "/" + self.jsumdatabase.name + "/_design/WMStats/_update/jobSummaryState/" + jobSummaryId
-                updateUri += "?newstate=%s&timestamp=%s" % (newstate, timestamp)
+                if newstate == "exhausted":
+                    monitorState = "jobfailed"
+                else:
+                    monitorState = newstate
+                updateUri += "?newstate=%s&timestamp=%s" % (monitorState, timestamp)
                 self.jsumdatabase.makeRequest(uri = updateUri, type = "PUT", decode = False)
                 logging.debug("Updated job summary status for job %s" % jobSummaryId)
                 
                 updateUri = "/" + self.jsumdatabase.name + "/_design/WMStats/_update/jobStateTransition/" + jobSummaryId
                 updateUri += "?oldstate=%s&newstate=%s&location=%s&timestamp=%s" % (oldstate,
-                                                                                    newstate,
+                                                                                    monitorState,
                                                                                     job["location"],
                                                                                     timestamp)
                 self.jsumdatabase.makeRequest(uri = updateUri, type = "PUT", decode = False)
