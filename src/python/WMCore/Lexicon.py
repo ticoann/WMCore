@@ -13,10 +13,17 @@ import urlparse
 
 from WMCore.WMException import WMException
 
+#restriction enforced by DBS. for different workflow. I could have a strict restriction
+# i.e production should end with v[number]
+PRIMARY_DS = {'re': '[a-zA-Z0-9\.\-_]+', 'maxLength': 100}
+PROCESSED_DS = {'re': '[[a-zA-Z0-9\.\-_]+', 'maxLength': 200}
+TIER = {'re': '[A-Z\-_]+', 'maxLength': 100}
+BLOCK_STR = {'re': '#[a-zA-Z0-9\.\-_]+', 'maxLength': 100}
+
 lfnParts = {
     'era': '([a-zA-Z0-9\-_]+)',
-    'primDS': '([a-zA-Z0-9\-_]+)',
-    'tier': '([A-Z\-_]+)',
+    'primDS': '(%(re)s)' % PRIMARY_DS,
+    'tier': '(%(re)s)' % TIER,
     'version': '([a-zA-Z0-9\-_]+)',
     'secondary': '([a-zA-Z0-9\-_]+)',
     'counter': '([0-9]+)',
@@ -125,8 +132,15 @@ def countrycode(candidate):
 
 def block(candidate):
     """assert if not a valid block name"""
-    return check(r"^(/[a-zA-Z0-9\.\-_]{1,100}){3}#[a-zA-Z0-9\.\-_]{1,100}$", candidate)
-
+    assert candidate.count('/') == 3, "need to have / between the 3 parts which construct block name"
+    parts = candidate.split('/')
+    #should be empty string for the first part
+    startStrCheck = check(r"", parts[0])
+    dbsPrimDSCheck = check(r"%s" % PRIMARY_DS['re'], parts[1], PRIMARY_DS['maxLength'])
+    dbsProcDSCheck = check(r"%s" % PROCESSED_DS['re'], parts[2], PROCESSED_DS['maxLength'])
+    dbsBlockCheck = check(r"%s" % BLOCK_STR['re'], parts[3], BLOCK_STR['maxLength'])
+    return (startStrCheck and dbsPrimDSCheck and dbsProcDSCheck and dbsBlockCheck)
+                
 def identifier(candidate):
     """ letters, numbers, whitespace, periods, dashes, underscores """
     return check(r'[a-zA-Z0-9\s\.\-_]{1,100}$', candidate)
@@ -146,7 +160,9 @@ def procdataset(candidate):
     """
     if candidate == '' or not candidate:
         return candidate
-    return check(r'[a-zA-Z][a-zA-Z0-9_]*(\-[a-zA-Z0-9_]+){0,2}-v[0-9]*$', candidate)
+    dbsCheck = check(r"%s" % PROCESSED_DS['re'], candidate, PROCESSED_DS['maxLength'])
+    prodCheck = check(r'[a-zA-Z][a-zA-Z0-9_]*(\-[a-zA-Z0-9_]+){0,2}-v[0-9]*$', candidate)
+    return (dbsCheck and prodCheck)
 
 def userprocdataset(candidate):
     """
@@ -155,7 +171,9 @@ def userprocdataset(candidate):
     """
     if candidate == '' or not candidate:
         return candidate
-    return check(r'%(groupuser)s-%(publishdataname)s-%(psethash)s' % userProcDSParts, candidate)
+    dbsCheck = check(r"%s" % PROCESSED_DS['re'], candidate, PROCESSED_DS['maxLength'])
+    anlaysisCheck = check(r'%(groupuser)s-%(publishdataname)s-%(psethash)s' % userProcDSParts, candidate)
+    return (dbsCheck and anlaysisCheck)
 
 def procversion(candidate):
     """ Integers """
@@ -181,7 +199,8 @@ def primdataset(candidate):
     """
     if candidate =='' or not candidate :
         return candidate
-    return check(r'^[a-zA-Z][a-zA-Z0-9\-_]*$', candidate)
+    return (check(r"%s" % PRIMARY_DS['re'], candidate, PRIMARY_DS['maxLength']) and 
+            check(r'^[a-zA-Z][a-zA-Z0-9\-_]*$', candidate))
 
 
 def hnName(candidate):
@@ -315,7 +334,10 @@ def validateUrl(candidate):
     regex_url = r'%s(%s|%s|%s|%s)%s%s' % (protocol, domain, localhost, ipv4, ipv6, port, path)
     return check(regex_url, candidate)
 
-def check(regexp, candidate):
+def check(regexp, candidate, maxLength = None):
+    if maxLength != None:
+        assert len(candidate) <= maxLength, \
+            "%s is longer then max length (%s) allowed" % (candidate, maxLength)
     assert re.compile(regexp).match(candidate) != None , \
               "'%s' does not match regular expression %s" % (candidate, regexp)
     return True
