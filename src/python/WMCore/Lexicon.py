@@ -15,9 +15,9 @@ from WMCore.WMException import WMException
 
 #restriction enforced by DBS. for different workflow. I could have a strict restriction
 # i.e production should end with v[number]
-PRIMARY_DS = {'re': '[a-zA-Z0-9\.\-_]+', 'maxLength': 100}
-PROCESSED_DS = {'re': '[[a-zA-Z0-9\.\-_]+', 'maxLength': 200}
-TIER = {'re': '[A-Z\-_]+', 'maxLength': 100}
+PRIMARY_DS = {'re': '[a-zA-Z0-9\.\-_]+', 'maxLength': 99}
+PROCESSED_DS = {'re': '[a-zA-Z0-9\.\-_]+', 'maxLength': 199}
+TIER = {'re': '[A-Z\-_]+', 'maxLength': 99}
 BLOCK_STR = {'re': '#[a-zA-Z0-9\.\-_]+', 'maxLength': 100}
 
 lfnParts = {
@@ -70,14 +70,14 @@ def searchblock(candidate):
     A block name with a * wildcard one or more times in it.
     """
     #regexp = r"^/(\*|[a-zA-Z][a-zA-Z0-9_\*]{0,100})/(\*|[a-zA-Z0-9_\.\-\*]{1,100})/(\*|[A-Z\-]{3,20})#(\*|[a-zA-Z0-9\.\-_\*]{1,100})$"
-    regexp = r"^/(\*|[a-zA-Z\*][a-zA-Z0-9_\*]{0,100})(/(\*|[a-zA-Z0-9_\.\-\*]{1,100})){0,1}(/(\*|[A-Z\-\*]{1,50})(#(\*|[a-zA-Z0-9\.\-_\*]){0,100}){0,1}){0,1}$"
+    regexp = r"^/(\*|[a-zA-Z\*][a-zA-Z0-9_\*]{0,100})(/(\*|[a-zA-Z0-9_\.\-\*]{1,199})){0,1}(/(\*|[A-Z\-\*]{1,50})(#(\*|[a-zA-Z0-9\.\-_\*]){0,100}){0,1}){0,1}$"
     return check(regexp, candidate)
 
 def searchdataset(candidate):
     """
     A dataset name with a * wildcard one or more times in it. Only the first '/' is mandatory to use.
     """
-    regexp = r"^/(\*|[a-zA-Z\*][a-zA-Z0-9_\*\-]{0,100})(/(\*|[a-zA-Z0-9_\.\-\*]{1,100})){0,1}(/(\*|[A-Z\-\*]{1,50})){0,1}$"
+    regexp = r"^/(\*|[a-zA-Z\*][a-zA-Z0-9_\*\-]{0,100})(/(\*|[a-zA-Z0-9_\.\-\*]{1,199})){0,1}(/(\*|[A-Z\-\*]{1,50})){0,1}$"
     return check(regexp, candidate)
 
 def searchstr(candidate):
@@ -133,13 +133,16 @@ def countrycode(candidate):
 def block(candidate):
     """assert if not a valid block name"""
     assert candidate.count('/') == 3, "need to have / between the 3 parts which construct block name"
+    assert candidate.count('#') == 1, "need to have # in the last parts of block"
     parts = candidate.split('/')
     #should be empty string for the first part
     startStrCheck = check(r"", parts[0])
     dbsPrimDSCheck = check(r"%s" % PRIMARY_DS['re'], parts[1], PRIMARY_DS['maxLength'])
     dbsProcDSCheck = check(r"%s" % PROCESSED_DS['re'], parts[2], PROCESSED_DS['maxLength'])
-    dbsBlockCheck = check(r"%s" % BLOCK_STR['re'], parts[3], BLOCK_STR['maxLength'])
-    return (startStrCheck and dbsPrimDSCheck and dbsProcDSCheck and dbsBlockCheck)
+    lastParts = parts[3].split("#")
+    dbsTierCheck = check(r"%s" % TIER['re'], lastParts[0], TIER['maxLength'])
+    dbsBlockCheck = check(r"%s" % BLOCK_STR['re'], "#%s" % lastParts[1], BLOCK_STR['maxLength'])
+    return (startStrCheck and dbsPrimDSCheck and dbsProcDSCheck and dbsTierCheck and dbsBlockCheck)
                 
 def identifier(candidate):
     """ letters, numbers, whitespace, periods, dashes, underscores """
@@ -151,7 +154,7 @@ def globalTag(candidate):
 
 def dataset(candidate):
     """ A slash followed by an identifier,x3 """
-    return check(r'(/[a-zA-Z0-9\.\-_]{1,700}){3}$', candidate)
+    return check(r"^/[a-zA-Z0-9\.\-_]{1,99}/[a-zA-Z0-9\.\-_]{1,199}/[a-zA-Z0-9\.\-_]{1,99}$", candidate)
 
 def procdataset(candidate):
     """
@@ -160,6 +163,7 @@ def procdataset(candidate):
     """
     if candidate == '' or not candidate:
         return candidate
+
     dbsCheck = check(r"%s" % PROCESSED_DS['re'], candidate, PROCESSED_DS['maxLength'])
     prodCheck = check(r'[a-zA-Z][a-zA-Z0-9_]*(\-[a-zA-Z0-9_]+){0,2}-v[0-9]*$', candidate)
     return (dbsCheck and prodCheck)
@@ -171,6 +175,7 @@ def userprocdataset(candidate):
     """
     if candidate == '' or not candidate:
         return candidate
+
     dbsCheck = check(r"%s" % PROCESSED_DS['re'], candidate, PROCESSED_DS['maxLength'])
     anlaysisCheck = check(r'%(groupuser)s-%(publishdataname)s-%(psethash)s' % userProcDSParts, candidate)
     return (dbsCheck and anlaysisCheck)
