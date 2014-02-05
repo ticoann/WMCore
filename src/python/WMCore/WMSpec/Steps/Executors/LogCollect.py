@@ -127,6 +127,10 @@ class LogCollect(Executor):
                 except StageOutFailure, ex:
                     msg = "Unable to StageIn %s" % file['LFN']
                     logging.error(msg)
+                    import traceback
+                    logging.error("========\n%s" % str(ex))
+                    logging.error(str(traceback.format_exc()))
+                    logging.error("xxxxxxxx\n%s")
                     # Don't do anything other then record it
                     self.report.addSkippedFile(file.get('PFN', None), file['LFN'])
                 except Exception, ex:
