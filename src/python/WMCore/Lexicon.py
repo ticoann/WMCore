@@ -16,7 +16,7 @@ from WMCore.WMException import WMException
 #restriction enforced by DBS. for different types blocks. 
 #It could have a strict restriction
 # i.e production should end with v[number]
-PRIMARY_DS = {'re': '[a-zA-Z0-9\.\-_]+', 'maxLength': 99}
+PRIMARY_DS = {'re': '[a-zA-Z][a-zA-Z0-9\-_]*', 'maxLength': 99}
 PROCESSED_DS = {'re': '[a-zA-Z0-9\.\-_]+', 'maxLength': 199}
 TIER = {'re': '[A-Z\-_]+', 'maxLength': 99}
 BLOCK_STR = {'re': '#[a-zA-Z0-9\.\-_]+', 'maxLength': 100}
@@ -219,9 +219,7 @@ def primdataset(candidate):
     """
     if candidate =='' or not candidate :
         return candidate
-    return (check(r"%s" % PRIMARY_DS['re'], candidate, PRIMARY_DS['maxLength']) and 
-            check(r'^[a-zA-Z][a-zA-Z0-9\-_]*$', candidate))
-
+    return check(r"^%s$" % PRIMARY_DS['re'], candidate, PRIMARY_DS['maxLength'])
 
 def hnName(candidate):
     """
