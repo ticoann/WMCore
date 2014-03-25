@@ -131,7 +131,7 @@ class CMSSW(Executor):
         # set any global environment variables
         #
         try:
-            os.environ['FRONTIER_ID'] = 'wmagent_%i_%s_%s_%s' % (self.job['id'], self.task.name(),
+            os.environ['FRONTIER_ID'] = 'wmagent_%i_%s_%s_%s' % (self.job['id'], self.report.data.workload,
                                                                  self.job['retry_count'],
                                                                  cmsswVersion)
         except Exception, ex:
