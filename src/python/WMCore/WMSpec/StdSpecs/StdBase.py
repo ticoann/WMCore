@@ -117,7 +117,7 @@ class StdBase(object):
             elif scenarioFunc == "alcaSkim":
                 for alcaSkim in scenarioArgs.get('skims',[]):
                     moduleLabel = "ALCARECOStream%s" % alcaSkim
-                    if alcaSkim == "PromptCalibProd":
+                    if alcaSkim.startswith("PromptCalibProd"):
                         dataTier = "ALCAPROMPT"
                     else:
                         dataTier = "ALCARECO"
@@ -205,6 +205,7 @@ class StdBase(object):
         workload.setProcessingString(processingStrings = self.processingString)
         workload.setValidStatus(validStatus = self.validStatus)
         workload.setPriority(self.priority)
+        workload.setPrepID(self.prepID)
         return workload
 
     def setupProcessingTask(self, procTask, taskType, inputDataset = None, inputStep = None,
@@ -317,6 +318,9 @@ class StdBase(object):
 
         procTaskCmsswHelper.cmsswSetup(self.frameworkVersion, softwareEnvironment = "",
                                        scramArch = self.scramArch)
+        
+        if newSplitArgs.has_key("events_per_lumi"):
+            eventsPerLumi = newSplitArgs["events_per_lumi"]  
         procTaskCmsswHelper.setEventsPerLumi(eventsPerLumi)
 
         configOutput = self.determineOutputModules(scenarioFunc, scenarioArgs,
@@ -528,7 +532,7 @@ class StdBase(object):
                                         siteBlacklist = self.siteBlacklist,
                                         initial_lfn_counter = lfn_counter)
 
-        if getattr(parentOutputModule, "dataTier") == "DQMROOT":
+        if getattr(parentOutputModule, "dataTier") == "DQMIO":
             mergeTaskCmsswHelper.setDataProcessingConfig("do_not_use", "merge",
                                                          newDQMIO = True)
         else:
@@ -543,7 +547,7 @@ class StdBase(object):
                              forceMerged = True)
 
         self.addCleanupTask(parentTask, parentOutputModuleName)
-        if self.enableHarvesting and getattr(parentOutputModule, "dataTier") in ["DQMROOT", "DQM"]:
+        if self.enableHarvesting and getattr(parentOutputModule, "dataTier") in ["DQMIO", "DQM"]:
             self.addDQMHarvestTask(mergeTask, "Merged",
                                    uploadProxy = self.dqmUploadProxy,
                                    periodic_harvest_interval= self.periodicHarvestInterval,
@@ -633,7 +637,7 @@ class StdBase(object):
                 harvestTaskCmsswHelper.setConfigCache(self.couchURL, self.dqmConfigCacheID, self.couchDBName)
             harvestTaskCmsswHelper.setDatasetName(datasetName)
         else:
-            if getattr(parentOutputModule, "dataTier") == "DQMROOT":
+            if getattr(parentOutputModule, "dataTier") == "DQMIO":
                 harvestTaskCmsswHelper.setDataProcessingConfig(self.procScenario, "dqmHarvesting",
                                                                globalTag = self.globalTag,
                                                                datasetName = datasetName,
@@ -860,7 +864,7 @@ class StdBase(object):
                      "MaxMergeEvents" : {"default" : 100000, "type" : int,
                                          "validate" : lambda x : x > 0},
                      "ValidStatus" : {"default" : "PRODUCTION"},
-                     "DbsUrl" : {"default" : "http://cmsdbsprod.cern.ch/cms_dbs_prod_global/servlet/DBSServlet"},
+                     "DbsUrl" : {"default" : "https://cmsweb.cern.ch/dbs/prod/global/DBSReader"},
                      "DashboardHost" : {"default" : "cms-wmagent-job.cern.ch"},
                      "DashboardPort" : {"default" : 8884, "type" : int,
                                         "validate" : lambda x : x > 0},
@@ -886,18 +890,24 @@ class StdBase(object):
                      "EnableNewStageout" : {"default" : False, "type" : strToBool},
                      "IncludeParents" : {"default" : False,  "type" : strToBool},
                      "Multicore" : {"default" : None, "null" : True,
-                                    "validate" : lambda x : x == "auto" or (int(x) > 0)}}
+                                    "validate" : lambda x : x == "auto" or (int(x) > 0)},
+                     "PrepID": {"default" : None, "null" : True}}
 
         # Set defaults for the argument specification
+        StdBase.setDefaultArgumentsProperty(arguments)
+
+        return arguments
+    
+    @staticmethod
+    def setDefaultArgumentsProperty(arguments):
         for arg in arguments:
             arguments[arg].setdefault("type", str)
             arguments[arg].setdefault("optional", True)
             arguments[arg].setdefault("null", False)
             arguments[arg].setdefault("validate", None)
             arguments[arg].setdefault("attr", arg[:1].lower() + arg[1:])
-
-        return arguments
-
+        return
+    
     @classmethod
     def getTestArguments(cls):
         """
@@ -918,5 +928,9 @@ class StdBase(object):
                 schema[arg] = "127.0.0.1"
             elif not workloadDefinition[arg]["optional"]:
                 schema[arg] = workloadDefinition[arg]["default"]
+            
+            if arg == "CouchURL":
+                import os
+                schema[arg] = os.environ["COUCHURL"]
 
         return schema

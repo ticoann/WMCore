@@ -451,6 +451,8 @@ class TaskChainWorkloadFactory(StdBase):
                 taskConf[argument] = baseArguments[argument]["type"](taskConf[argument])
         if taskConf["EventsPerJob"] is None:
             taskConf["EventsPerJob"] = (8.0 * 3600.0)/(taskConf.get("TimePerEvent", self.timePerEvent))
+        if taskConf["EventsPerLumi"] is None:
+            taskConf["EventsPerLumi"] = taskConf["EventsPerJob"]
         if generator:
             taskConf["SplittingAlgo"] = "EventBased"
         taskConf["SplittingArguments"] = {}
@@ -458,6 +460,9 @@ class TaskChainWorkloadFactory(StdBase):
             taskConf["SplittingArguments"]["events_per_job"] = taskConf["EventsPerJob"]
             if taskConf["SplittingAlgo"] == "EventAwareLumiBased":
                 taskConf["SplittingArguments"]["max_events_per_lumi"] = 20000
+            else:
+                taskConf["SplittingArguments"]["events_per_lumi"] = taskConf["EventsPerLumi"]
+            taskConf["SplittingArguments"]["lheInputFiles"] = taskConf["LheInputFiles"]
         elif taskConf["SplittingAlgo"] == "LumiBased":
             taskConf["SplittingArguments"]["lumis_per_job"] = taskConf["LumisPerJob"]
         elif taskConf["SplittingAlgo"] == "FileBased":

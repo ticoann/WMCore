@@ -671,7 +671,7 @@ class WMWorkloadHelper(PersistencyHelper):
                             setattr(outputModule, "lfnBase", mergedLFN)
                             setattr(outputModule, "mergedLFNBase", mergedLFN)
 
-                            if getattr(outputModule, "dataTier") in ["DQM", "DQMROOT"]:
+                            if getattr(outputModule, "dataTier") in ["DQM", "DQMIO"]:
                                 datasetName = "/%s/%s/%s" % (getattr(outputModule, "primaryDataset"),
                                                              processedDataset,
                                                              getattr(outputModule, "dataTier"))
@@ -865,6 +865,25 @@ class WMWorkloadHelper(PersistencyHelper):
 
         return getattr(self.data.properties, 'validStatus', None)
 
+    def setPrepID(self, prepID):
+        """
+        _setCampaign_
+
+        Set the campaign to which this workflow belongs
+        Optional
+        """
+        self.data.properties.prepID = prepID
+        return
+
+
+    def getPrepID(self):
+        """
+        _getCampaign_
+
+        Get the campaign for the workflow
+        """
+        return getattr(self.data.properties, 'prepID', None)
+    
     def setCampaign(self, campaign):
         """
         _setCampaign_
@@ -1712,7 +1731,8 @@ class WMWorkload(ConfigSection):
         self.properties.blockCloseMaxSize = 5000000000000
         self.properties.blockCloseMaxFiles = 500
         self.properties.blockCloseMaxEvents = 250000000
-
+        self.properties.prepID = None
+        
         # Overrides for this workload
         self.section_("overrides")
 

@@ -154,6 +154,7 @@ def uploadWorker(input, results, dbsUrl):
                 msg += exString
                 logging.error(msg)
                 logging.error(str(traceback.format_exc()))
+                logging.debug("block: %s \n" % block)
                 results.put({'name': name, 'success': "error", 'error': msg})
 
     return
@@ -677,7 +678,8 @@ class DBSUploadPoller(BaseWorkerThread):
                 block.setDataset(datasetName  = dbsFile['datasetPath'],
                                  primaryType  = self.primaryDatasetType,
                                  datasetType  = self.datasetType,
-                                 physicsGroup = dbsFile.get('physicsGroup', None))
+                                 physicsGroup = dbsFile.get('physicsGroup', None),
+                                 prep_id = dbsFile.get('prep_id', None))
             logging.debug("Found block %s in blocks" % block.getName())
             block.setPhysicsGroup(group = self.physicsGroup)
             
