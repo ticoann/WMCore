@@ -48,10 +48,10 @@ agentName = "WMAgentCommissioning"
 agentNumber = 0
 
 # List of BossAir plugins that this agent will use.
-bossAirPlugins = ["CondorPlugin"]
+#bossAirPlugins = ["CondorPlugin"]
 
 ## Condor-Python API to be used...
-#bossAirPlugins = ["PyCondorPlugin"]
+bossAirPlugins = ["PyCondorPlugin"]
 
 # DBS Information.
 localDBSUrl = "https://cmst0dbs.cern.ch:8443/cms_dbs_prod_tier0_writer/servlet/DBSServlet"
