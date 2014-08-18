@@ -12,6 +12,7 @@ import json
 
 from WMCore.DataStructs.LumiList import LumiList
 from WMCore.WMException import WMException
+from WMCore.Services.DBS.DBS3Reader import DBS3Reader
 
 class WMWorkloadToolsException(WMException):
     """
@@ -62,7 +63,16 @@ def strToBool(string):
         return False
     else:
         raise WMWorkloadToolsException()
-
+    
+def checkDBSUrl(dbsUrl):
+    if dbsUrl:
+        try:
+            DBS3Reader(dbsUrl).dbs.serverinfo()
+        except:
+            raise WMWorkloadToolsException("DBS is not responding: %s" % dbsUrl)
+    else:
+        return True
+    
 def parsePileupConfig(mcPileup, dataPileup):
     """
     _parsePileupConfig_
