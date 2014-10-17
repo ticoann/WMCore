@@ -91,7 +91,7 @@ class GetAndMarkNewFinishedSubscriptions(DBFormatter):
 
                     WHERE complete_subscription.id
                         NOT IN ( %s )
-                    GROUP BY complete_subscription.id
+                    GROUP BY complete_subscription.id, child_workflow.name
                     HAVING COUNT(child_workflow.name) = 0) deletable_subscriptions )""" % (
                                                         completeNonJobSQL, subWithUnfinishedJobSQL)
 
