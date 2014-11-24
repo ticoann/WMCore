@@ -317,6 +317,12 @@ class LumiBased(JobFactory):
                     overlap += self.lumiCorrection(job1, job2, locationDict[location])
             logging.info("There were %d overlapping lumis and %d total lumis." % (overlap, lumicount))
 
+            #temp fix form removing empty lumi
+            index = 0
+            for job in jobs:
+                if len(jobs[index]['mask'].getRunAndLumis()) == 0:
+                    del jobs[index]
+                index += 1
             if stopTask:
                 break
 
