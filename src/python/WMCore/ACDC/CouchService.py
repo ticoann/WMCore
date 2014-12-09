@@ -47,6 +47,21 @@ class CouchService(Service):
             yield coll
 
     @CouchUtils.connectToCouch
+    def listCollectionNames(self):
+        """
+        _listCollectionNames_
+
+        List the all collectionNames in acdc.
+        """
+        params = {"reduce": True, "group_level": 1}
+
+        result = self.couchdb.loadView("ACDC", "ByCollectionName", params)
+        collectionNames = []
+        for row in result["rows"]:
+            collectionNames.append(row["key"][0])
+        return collectionNames
+              
+    @CouchUtils.connectToCouch
     def listOwners(self):
         """
         _listOwners_
