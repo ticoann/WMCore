@@ -285,7 +285,9 @@ class ReDigiWorkloadFactory(DataProcessing):
     @staticmethod
     def getWorkloadArguments():
         baseArgs = DataProcessing.getWorkloadArguments()
-        specArgs = {"StepOneOutputModuleName" : {"default" : None, "type" : str,
+        specArgs = {"RequestType" : {"default" : "ReDigi", "optional" : True,
+                                      "attr" : "requestType"},
+                    "StepOneOutputModuleName" : {"default" : None, "type" : str,
                                                  "optional" : True, "validate" : None,
                                                  "attr" : "stepOneOutputModuleName", "null" : False},
                     "StepTwoOutputModuleName" : {"default" : None, "type" : str,

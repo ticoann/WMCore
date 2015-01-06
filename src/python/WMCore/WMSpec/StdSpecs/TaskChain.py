@@ -487,7 +487,9 @@ class TaskChainWorkloadFactory(StdBase):
     @staticmethod
     def getWorkloadArguments():
         baseArgs = StdBase.getWorkloadArguments()
-        specArgs = {"GlobalTag" : {"default" : "GT_TC_V1", "type" : str,
+        specArgs = {"RequestType" : {"default" : "TaskChain", "optional" : False,
+                                      "attr" : "requestType"},
+                    "GlobalTag" : {"default" : "GT_TC_V1", "type" : str,
                                    "optional" : False, "validate" : None,
                                    "attr" : "globalTag", "null" : False},
                     "CouchURL" : {"default" : "http://localhost:5984", "type" : str,
@@ -528,6 +530,9 @@ class TaskChainWorkloadFactory(StdBase):
         specArgs = {"TaskName" : {"default" : None, "type" : str,
                                   "optional" : False, "validate" : None,
                                   "null" : False},
+                    "ConfigCacheUrl" : {"default" : "https://cmsweb.cern.ch/couchdb", "type" : str,
+                                        "optional" : False, "validate" : None,
+                                        "attr" : "configCacheUrl", "null" : False},
                     "ConfigCacheID" : {"default" : None, "type" : str,
                                        "optional" : False, "validate" : None,
                                        "null" : False},

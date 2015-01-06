@@ -136,7 +136,9 @@ class MonteCarloWorkloadFactory(StdBase):
     @staticmethod
     def getWorkloadArguments():
         baseArgs = StdBase.getWorkloadArguments()
-        specArgs = {"PrimaryDataset" : {"default" : "BlackHoleTest", "type" : str,
+        specArgs = {"RequestType" : {"default" : "MonteCarlo", "optional" : True,
+                                      "attr" : "requestType"},
+                    "PrimaryDataset" : {"default" : "BlackHoleTest", "type" : str,
                                         "optional" : False, "validate" : primdataset,
                                         "attr" : "inputPrimaryDataset", "null" : False},
                     "Seeding" : {"default" : "AutomaticSeeding", "type" : str,
@@ -155,8 +157,8 @@ class MonteCarloWorkloadFactory(StdBase):
                     "CouchDBName" : {"default" : "mc_configcache", "type" : str,
                                      "optional" : False, "validate" : identifier,
                                      "attr" : "couchDBName", "null" : False},
-                    "ConfigCacheUrl" : {"default" : None, "type" : str,
-                                        "optional" : True, "validate" : None,
+                    "ConfigCacheUrl" : {"default" : "https://cmsweb.cern.ch/couchdb", "type" : str,
+                                        "optional" : False, "validate" : None,
                                         "attr" : "configCacheUrl", "null" : False},
                     "FilterEfficiency" : {"default" : 1.0, "type" : float,
                                           "optional" : True, "validate" : lambda x : x > 0.0,

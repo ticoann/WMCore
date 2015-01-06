@@ -122,6 +122,22 @@ def _validateArgument(argument, value, argumentDefinition):
             raise InvlaidSpecArgumentError("Validation failed: %s value: %s" % (argument, value))
     return value
 
+def _validateArgumentOptions(arguments, argumentDefinition, optionKey):
+    
+    for argument in argumentDefinition:
+        optional = argumentDefinition[argument].get(optionKey, True)
+        if not optional and argument not in arguments:
+            raise InvlaidSpecArgumentError("Validation failed: %s is mendatory" % argument)
+        # specific case when user GUI returns empty string for optional arguments
+        elif optional and argument not in arguments:
+            continue
+        elif optional and (argument in arguments) and \
+             (arguments[argument] == ""):
+            del arguments[argument] 
+        else:
+            arguments[argument] = _validateArgument(argument, arguments[argument], argumentDefinition)
+        return
+
 def validateArgumentsCreate(arguments, argumentDefinition):
     """
     _validateArguments_
@@ -132,21 +148,8 @@ def validateArgumentsCreate(arguments, argumentDefinition):
     otherwise returns None, this is used for spec creation 
     checks the whether argument is optional as well as validation
     """
-    for argument in argumentDefinition:
-        optional = argumentDefinition[argument]["optional"]
-        if not optional and argument not in arguments:
-            return "Argument %s is required." % argument
-        elif optional and argument not in arguments:
-            continue
-        elif optional and (argument in arguments) and \
-             (arguments[argument] == ""):
-            del arguments[argument] 
-            continue
-        else:
-            arguments[argument] = _validateArgument(argument, arguments[argument], argumentDefinition)
-
-    return
-
+    return _validateArgumentOptions(arguments, argumentDefinition, "optional")
+    
 def validateArgumentsUpdate(arguments, argumentDefinition):
     """
     _validateArgumentsUpdate_
@@ -156,19 +159,7 @@ def validateArgumentsUpdate(arguments, argumentDefinition):
     an error message if the validation went wrong,
     otherwise returns None
     """
-    for argument in argumentDefinition:
-        optional = argumentDefinition[argument].get("assign_optional", True)
-        if not optional and argument not in arguments:
-            if argumentDefinition[argument].has_key("default"):
-                arguments[argument] = argumentDefinition[argument]["default"]
-            else:
-                return "Argument %s is required." % argument
-        elif optional and argument not in arguments:
-            continue
-        
-    for argument in arguments:
-        arguments[argument] = _validateArgument(argument, arguments[argument], argumentDefinition)
-    return
+    return _validateArgumentOptions(arguments, argumentDefinition, "assign_optional")
 
 def setArgumentsNoneValueWithDefault(arguments, argumentDefinition):
     """

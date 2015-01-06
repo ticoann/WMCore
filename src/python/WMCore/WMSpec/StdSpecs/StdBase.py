@@ -829,7 +829,7 @@ class StdBase(object):
         return self.schema
 
     @staticmethod
-    def getWorkloadArguments():
+    def getWorkloadArguments(useReqMgr = True):
         """
         _getWorkloadArguments_
 
@@ -845,7 +845,8 @@ class StdBase(object):
                    and a default value is provided, this is only meant for test purposes.
         - type: A function that verifies the type of the argument, it may also cast it into the appropiate python type.
                 If the input is not compatible with the expected type, this method must throw an exception.
-        - optional: This boolean value indicates if the value must be provided or not
+        - optional: This boolean value indicates if the value must be provided or not by user 
+                    or inherited class can overwrite with default value.
         - validate: A function which validates the input after type casting,
                     it returns True if the input is valid, it can throw exceptions on invalid input.
         - attr: This represents the name of the attribute corresponding to the argument in the WMSpec object.
@@ -863,17 +864,11 @@ class StdBase(object):
 
         self.priority = arguments.get("RequestPriority", 0)
         """
-        arguments = {"RequestType" : {"default" : "unknown", "optional" : False,
-                                      "attr" : "requestType"},
-                     "RequestPriority": {"default" : 0, "type" : int,
-                                         "optional" : False, "validate" : lambda x : (x >= 0 and x < 1e6),
+        arguments = {"RequestType" : {"default" : None, "optional" : False,
+                                      "attr" : "requestType"}, # this need to be overwritten by inherited class
+                     "RequestPriority": {"default" : 8000, "type" : int,
+                                         "optional" : True, "validate" : lambda x : (x >= 0 and x < 1e6),
                                          "attr" : "priority"},
-                     "Requestor": {"default" : "unknown", "optional" : False,
-                                   "attr" : "owner"},
-                     "RequestorDN" : {"default" : "unknown", "optional" : False,
-                                      "attr" : "owner_dn"},
-                     "Group" : {"default" : "unknown", "optional" : False,
-                                "attr" : "group"},
                      "VoGroup" : {"default" : "DEFAULT", "attr" : "owner_vogroup"},
                      "VoRole" : {"default" : "DEFAULT", "attr" : "owner_vorole"},
                      "Campaign" : {"default" : None, "optional" : True, "attr" : "campaign"},
@@ -972,25 +967,28 @@ class StdBase(object):
                      "Dashboard" : {"default" : "", "type" : str},
                      # team name
                      "Team" : {"default" : "", "type" : str},
-                     
-                     # this is specified automatically by reqmgr.
-#                      "RequestName" : {"default" : "AnotherRequest", "type" : str,
-#                                      "optional" : False, "validate" : None,
-#                                      "attr" : "requestName", "null" : False},
-                     "CouchURL" : {"default" : "http://localhost:5984", "type" : str,
-                                 "optional" : False, "validate" : couchurl,
-                                 "attr" : "couchURL", "null" : False},
-                     "CouchDBName" : {"default" : "dp_configcache", "type" : str,
-                                    "optional" : True, "validate" : identifier,
-                                    "attr" : "couchDBName", "null" : False},
-                     "ConfigCacheUrl" : {"default" : None, "type" : str,
-                                       "optional" : True, "validate" : None,
-                                       "attr" : "configCacheUrl", "null" : True},
-                     "CouchWorkloadDBName" : {"default" : "reqmgr_workload_cache", "type" : str,
-                                    "optional" : False, "validate" : identifier,
-                                    "attr" : "couchWorkloadDBName", "null" : False},
-                     "PrepID": {"default" : None, "null" : True}}
+                     "PrepID": {"default" : None, "null" : True}
+                     }
 
+        # arguments need to be defined all the workflows which uses reqmgr
+        reqMgrArguments = {"Requestor": {"optional" : True, "attr" : "owner"},
+                           "RequestorDN" : {"default" : None, "optional" : False, "attr" : "owner_dn"},
+                           "Group" : {"default" : None, "optional" : False, "attr" : "group"},
+                           "CouchURL" : {"default" : "https://cmsweb.cern.ch/couchdb", "type" : str,
+                                     "optional" : True, "validate" : couchurl,
+                                     "attr" : "couchURL", "null" : False},
+                           "CouchDBName" : {"default" : "dp_configcache", "type" : str,
+                                        "optional" : True, "validate" : identifier,
+                                        "attr" : "couchDBName", "null" : False},
+                           "ConfigCacheUrl" : {"default" :"https://cmsweb.cern.ch/couchdb", "type" : str,
+                                               "optional" : True, "validate" : None,
+                                               "attr" : "configCacheUrl", "null" : True},
+                           "CouchWorkloadDBName" : {"default" : "reqmgr_workload_cache", "type" : str,
+                                               "optional" : True, "validate" : identifier,
+                                               "attr" : "couchWorkloadDBName", "null" : False},
+                         }
+        if useReqMgr:
+            arguments.update(reqMgrArguments)
         # Set defaults for the argument specification
         StdBase.setDefaultArgumentsProperty(arguments)
 

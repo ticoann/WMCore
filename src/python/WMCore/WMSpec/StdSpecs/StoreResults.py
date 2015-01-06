@@ -96,7 +96,9 @@ class StoreResultsWorkloadFactory(StdBase):
     @staticmethod
     def getWorkloadArguments():
         baseArgs = StdBase.getWorkloadArguments()
-        specArgs = {"InputDataset" : {"default" : "/MinimumBias/Run2010A-Dec22ReReco_v1/USER",
+        specArgs = {"RequestType" : {"default" : "StoreResults", "optional" : True,
+                                      "attr" : "requestType"},
+                    "InputDataset" : {"default" : None,
                                       "type" : str, "optional" : False,
                                       "validate" : dataset, "attr" : "inputDataset",
                                       "null" : False},

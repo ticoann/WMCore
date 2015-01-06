@@ -283,8 +283,10 @@ class PromptRecoWorkloadFactory(StdBase):
 
     @staticmethod
     def getWorkloadArguments():
-        baseArgs = StdBase.getWorkloadArguments()
-        specArgs = {"Scenario" : {"default" : None, "type" : str,
+        baseArgs = StdBase.getWorkloadArguments(useReqMgr = False)
+        specArgs = {"RequestType" : {"default" : "PromptReco", "optional" : True,
+                                      "attr" : "requestType"},
+                    "Scenario" : {"default" : None, "type" : str,
                                   "optional" : False, "validate" : None,
                                   "attr" : "procScenario", "null" : False},
                     "GlobalTag" : {"default" : None, "type" : str,
@@ -304,15 +306,6 @@ class PromptRecoWorkloadFactory(StdBase):
                     "PromptSkims" : {"default" : [], "type" : makeList,
                                      "optional" : True, "validate" : None,
                                      "attr" : "promptSkims", "null" : False},
-                    "CouchURL" : {"default" : None, "type" : str,
-                                  "optional" : False, "validate" : couchurl,
-                                  "attr" : "couchURL", "null" : False},
-                    "CouchDBName" : {"default" : "promptreco_t", "type" : str,
-                                     "optional" : True, "validate" : identifier,
-                                     "attr" : "couchDBName", "null" : False},
-                    "ConfigCacheUrl" : {"default" : None, "type" : str,
-                                        "optional" : True, "validate" : couchurl,
-                                        "attr" : "configCacheUrl", "null" : False},
                     "InitCommand" : {"default" : None, "type" : str,
                                      "optional" : True, "validate" : None,
                                      "attr" : "initCommand", "null" : False},

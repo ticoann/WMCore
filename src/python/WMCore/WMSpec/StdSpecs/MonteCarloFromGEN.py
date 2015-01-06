@@ -97,9 +97,14 @@ class MonteCarloFromGENWorkloadFactory(DataProcessing):
     @staticmethod
     def getWorkloadArguments():
         baseArgs = DataProcessing.getWorkloadArguments()
-        specArgs = {"PrimaryDataset" : {"default" : None, "type" : str,
+        specArgs = {"RequestType" : {"default" : "MonteCarloFromGEN", "optional" : True,
+                                      "attr" : "requestType"},
+                    "PrimaryDataset" : {"default" : None, "type" : str,
                                         "optional" : True, "validate" : primdataset,
                                         "attr" : "inputPrimaryDataset", "null" : False},
+                    "ConfigCacheUrl" : {"default" : None, "type" : str,
+                                        "optional" : True, "validate" : None,
+                                        "attr" : "configCacheUrl", "null" : False},
                     "ConfigCacheID" : {"default" : None, "type" : str,
                                        "optional" : False, "validate" : None,
                                        "attr" : "configCacheID", "null" : False}}
