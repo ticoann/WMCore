@@ -386,6 +386,7 @@ class ErrorHandlerPoller(BaseWorkerThread):
             msg += "transactions postponed until the next polling cycle\n"
             msg += str(ex)
             logging.exception(msg)
+            logging.warning("retrying..")
         except Exception, ex:
             msg = "Caught exception in ErrorHandler\n"
             msg += str(ex)
@@ -396,4 +397,5 @@ class ErrorHandlerPoller(BaseWorkerThread):
             if getattr(myThread, 'transaction', None) != None \
                and getattr(myThread.transaction, 'transaction', None) != None:
                 myThread.transaction.rollback()
-            raise ErrorHandlerException(msg)
+            #raise ErrorHandlerException(msg)
+            logging.warning("retrying..")

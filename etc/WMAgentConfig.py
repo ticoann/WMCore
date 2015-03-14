@@ -221,10 +221,11 @@ config.ErrorHandler.namespace = "WMComponent.ErrorHandler.ErrorHandler"
 config.ErrorHandler.componentDir  = config.General.workDir + "/ErrorHandler"
 config.ErrorHandler.logLevel = globalLogLevel
 config.ErrorHandler.maxRetries = maxJobRetries
-config.ErrorHandler.pollInterval = 240
+config.ErrorHandler.pollInterval = 60
 config.ErrorHandler.readFWJR = True
 config.ErrorHandler.failureExitCodes = [50660, 50661, 50664]
 config.ErrorHandler.maxFailTime = 120000
+config.ErrorHandler.maxProcessSize = 1
 
 config.component_("RetryManager")
 config.RetryManager.namespace = "WMComponent.RetryManager.RetryManager"
