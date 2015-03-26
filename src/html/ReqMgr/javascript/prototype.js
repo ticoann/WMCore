@@ -1719,11 +1719,6 @@ Ajax.Request = Class.create(Ajax.Base, {
           this.options.parameters :
           Object.toQueryString(this.options.parameters);
 
-    if (!['get', 'post'].include(this.method)) {
-      params += (params ? '&' : '') + "_method=" + this.method;
-      this.method = 'post';
-    }
-
     if (params && this.method === 'get') {
       this.url += (this.url.include('?') ? '&' : '?') + params;
     }

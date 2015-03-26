@@ -22,11 +22,11 @@ function errorMessage(err) {
     doc.innerHTML=html;
     doc.className='width-50 tools-alert tools-alert-red confirmation shadow';
 }
-function ajaxRequest(path, parameters) {
+function ajaxRequest(path, parameters, verb) {
     // path is an URI binded to certain server method
     // parameters is dict of parameters passed to the server function
     new Ajax.Updater('response', path,
-    { method: 'post' ,
+    { method: verb ||'post' ,
       parameters : parameters,
       onCreate: function() {
           var doc = document.getElementById('confirmation');
