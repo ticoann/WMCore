@@ -609,7 +609,7 @@ class JobSubmitterPoller(BaseWorkerThread):
                 taskCache = self.cachedJobs[siteName][taskType]
 
                 # Calculate number of jobs we need
-                nJobsRequired = min(totalPendingSlots - totalPending, taskPendingSlots - taskPending)
+                nJobsRequired = taskPendingSlots - taskPending
                 breakLoop = False
                 logging.debug("nJobsRequired for task %s: %i" % (taskType, nJobsRequired))
 
