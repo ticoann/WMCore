@@ -7,6 +7,7 @@ https://github.com/dmwm/WMCore/issues/5705
 # standard modules
 import os
 import logging
+import threading
 
 # project modules
 from WMCore.Services.LogDB.LogDBBackend import LogDBBackend
@@ -24,15 +25,16 @@ class LogDB(object):
             raise RuntimeError("Attempt to init LogDB with url='%s', identifier='%s'"\
                     % (url, identifier))
         self.identifier = identifier
+        self.thread_name = threading.currentThread().getName()
         self.agent = 1 if centralurl else 0
         self.localurl = url
         self.centralurl = centralurl
         couch_url, db_name = splitCouchServiceURL(self.localurl)
-        self.backend = LogDBBackend(couch_url, db_name, identifier, self.agent, **kwds)
+        self.backend = LogDBBackend(couch_url, db_name, identifier, self.thread_name, self.agent, **kwds)
         self.central = None
         if  centralurl:
             couch_url, db_name = splitCouchServiceURL(self.centralurl)
-            self.central = LogDBBackend(couch_url, db_name, identifier, self.agent, **kwds)
+            self.central = LogDBBackend(couch_url, db_name, identifier, self.thread_name, self.agent, **kwds)
         self.logger.info(self)
 
     def __repr__(self):
@@ -99,3 +101,23 @@ class LogDB(object):
             res = 'summary-error'
         self.logger.debug("LogDB upload2central request, res=%s", res)
         return res
+    
+    def get_all_requests(self):
+        """Retrieve all entries from LogDB for given request"""
+        try:
+            results = self.backend.get_all_requests()
+            res = []
+            for row in results:
+                res.append(row["key"])
+        except Exception as exc:
+            self.logger.error("LogDBBackend get API failed, error=%s" % str(exc))
+            res = 'get-error'
+        self.logger.debug("LogDB get request, res=%s", res)
+        return res
+    
+    def delete_old_logs(self, time_threshold):
+        """
+        delete all the requests current_time - threshold
+        """
+        pass
+        

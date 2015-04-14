@@ -38,11 +38,12 @@ class LogDBBackend(object):
     """
     Represents persistent storage for LogDB
     """
-    def __init__(self, db_url, db_name, identifier, agent, **kwds):
+    def __init__(self, db_url, db_name, identifier, thread_name, agent, **kwds):
         self.db_url = db_url
         self.server = CouchServer(db_url)
         self.db_name = db_name
         self.dbid = identifier
+        self.thread_name = thread_name
         self.agent = agent
         create = kwds.get('create', False)
         size = kwds.get('size', 10000)
@@ -82,7 +83,7 @@ class LogDBBackend(object):
         """Post new entry into LogDB for given request"""
         self.check(request)
         mtype = self.prefix(mtype)
-        data = {"request":request, "agent": self.dbid, "ts":tstamp(), "msg":msg, "type":mtype}
+        data = {"request":request, "agent": self.dbid, "worker": self.thread_name, "ts":tstamp(), "msg":msg, "type":mtype}
         res = self.db.commitOne(data)
         return res
 
@@ -98,8 +99,7 @@ class LogDBBackend(object):
     def delete(self, request):
         """Delete entry in LogDB for given request"""
         self.check(request)
-        mtype = self.prefix(mtype)
-        docs = self.get(request, mtype)
+        docs = self.get(request)
         ids = [r['value']['_id'] for r in docs.get('rows', [])]
         res = self.db.bulkDeleteByIds(ids)
         return res
@@ -131,3 +131,9 @@ class LogDBBackend(object):
                 doc.update(val)
                 out.append(doc)
         return out
+    
+    def get_all_requests(self):
+        """Retrieve all entries from LogDB for given request"""
+        spec = {'reduce': True, 'group_level': 1}
+        docs = self.db.loadView(self.design, self.view, spec)
+        return docs
