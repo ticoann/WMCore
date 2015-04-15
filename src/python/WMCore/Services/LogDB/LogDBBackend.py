@@ -119,9 +119,9 @@ class LogDBBackend(object):
         odict = {}
         for doc in docs.get('rows', []):
             entry = doc['value']
-            if  entry['worker'] != self.thread_name:
-                continue
-            key = (entry['request'], entry['type'])
+            agent = entry['agent'] 
+            worker = entry['worker'] 
+            key = (entry['request'], worker, entry['type'])
             if  entry['type'].startswith('agent-'):
                 if  key in odict:
                     if  entry['ts'] > odict[key]['ts']:
@@ -131,7 +131,8 @@ class LogDBBackend(object):
             else: # keep all user-based messages
                 odict.setdefault(key, []).append(clean_entry(entry))
         for key, val in odict.items():
-            doc = {'request':request, 'agent':self.dbid}
+            doc = {'_id': "%s-%s-%s" % (request, agent, worker),  
+                   'request':request, 'agent':agent, 'worker': worker}
             if  isinstance(val, list):
                 for item in val:
                     rec = dict(doc)
