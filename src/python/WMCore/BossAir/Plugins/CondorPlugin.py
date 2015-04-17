@@ -804,7 +804,7 @@ class CondorPlugin(BasePlugin):
             # Do a priority update
             priority = (int(kwargs['requestPriority']) + int(kwargs['taskPriority'])*self.maxTaskPriority)
             command = 'condor_qedit -constraint \'WMAgent_SubTaskName == "%s" && WMAgent_RequestName == "%s"\' ' %(task, workflow)
-            command += 'JobPrio %s' % priority
+            command += 'JobPrio %d' % priority
             command = shlex.split(command)
             proc = subprocess.Popen(command, stderr = subprocess.PIPE,
                                     stdout = subprocess.PIPE)
