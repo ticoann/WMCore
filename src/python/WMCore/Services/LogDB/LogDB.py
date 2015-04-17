@@ -56,6 +56,26 @@ class LogDB(object):
         self.logger.debug("LogDB post request, res=%s", res)
         return res
 
+    def update_log(self, request, msg, mtype="comment"):
+        """Post new entry into LogDB for given request"""
+        try:
+            res = self.backend.update_log(request, msg, mtype)
+        except Exception as exc:
+            self.logger.error("LogDBBackend post API failed, error=%s" % str(exc))
+            res = 'update_log-error'
+        self.logger.debug("LogDB update request, res=%s", res)
+        return res
+    
+    def update_comments(self, request, user_dn, msg):
+        """Post new entry into LogDB for given request"""
+        try:
+            res = self.backend.update_comments(request, user_dn, msg)
+        except Exception as exc:
+            self.logger.error("LogDBBackend update_comments API failed, error=%s" % str(exc))
+            res = 'update_comments-error'
+        self.logger.debug("LogDB update request, res=%s", res)
+        return res
+        
     def get(self, request, mtype="comment"):
         """Retrieve all entries from LogDB for given request"""
         try:
