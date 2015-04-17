@@ -9,8 +9,8 @@ import time
 import datetime
 
 from WMCore.Database.CMSCouch import CouchServer, CouchNotFoundError, CouchConflictError
-from WMCore.Wrappers import JsonWrapper as json
 from WMCore.Services.LogDB.LogDBExceptions import LogDBError
+from WMCore.Wrappers.JsonWrapper import JSONEncoder
 
 # define full list of supported LogDB types
 LOGDB_MSG_TYPES = ['info', 'error', 'warning', 'comment']
@@ -94,6 +94,37 @@ class LogDBBackend(object):
                 "ts":tstamp(), "msg":msg, "type":mtype}
         res = self.db.commitOne(data)
         return res
+    
+    def update_log(self, request, msg='', mtype="info"):
+        """Post new entry into LogDB for given request"""
+        self.check(request, mtype)
+        mtype = self.prefix(mtype)
+        doc_id = "--".join((request, self.dbid, self.thread_name, mtype))
+        
+        doc = {"_id": doc_id,
+                "request":request, "agent": self.dbid, "worker": self.thread_name,
+                "ts":tstamp(), "msg":msg, "type":mtype}
+        try:
+            exist_doc = self.db.document(doc["_id"])
+            doc["_rev"] = exist_doc["_rev"]
+        except CouchNotFoundError:
+            # this means document is not exist so we will just insert
+            pass
+        finally:
+            res = self.db.commitOne(doc)
+        return res
+    
+    def update_comment(self, request, user_dn, msg=''):
+        doc_id = "--".join((request, user_dn, "user", "comments"))
+        doc = {"_id": doc_id,
+               "request":request, "agent": user_dn, "worker": "user",
+               "ts":tstamp(), "msg":msg, "type": "comments"}
+
+        result = self.db.updateDocument(doc_id, "LogDB", "updatecomments", 
+                                        fields = {'doc': JSONEncoder().encode(doc)}, 
+                                        useBody = True)
+        return result
+        
 
     def get(self, request, mtype=None, detail=True):
         """Retrieve all entries from LogDB for given request"""
