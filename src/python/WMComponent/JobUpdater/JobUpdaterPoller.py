@@ -12,6 +12,7 @@ Created on Apr 16, 2013
 import logging
 import threading
 import traceback
+import socket
 from WMCore.BossAir.BossAirAPI import BossAirAPI
 from WMCore.DAOFactory import DAOFactory
 from WMCore.Services.ReqMgr.ReqMgr import ReqMgr
@@ -91,6 +92,12 @@ class JobUpdaterPoller(BaseWorkerThread):
             msg += "transactions postponed until the next polling cycle\n"
             msg += str(ex)
             logging.exception(msg)
+        except socket.error, ex:
+            msg = "Caught socket error in JobUpdater: will retry\n"
+            msg += str(ex)
+            msg += str(traceback.format_exc())
+            msg += "\n\n"
+            logging.error(msg)
         except Exception, ex:
             msg = "Caught unexpected exception in JobUpdater\n"
             msg += str(ex)
