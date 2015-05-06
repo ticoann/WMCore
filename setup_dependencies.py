@@ -142,6 +142,13 @@ dependencies = {'wmc-rest':{
                         'systems': ['wmc-runtime', 'wmc-database']
                         },
                 'reqmon':{
+                        'packages': ['WMCore.WMStats+',
+                                     'WMCore.WMDataMining+',
+                                     'WMCore.Services+'
+                                    ],
+                        'modules' : ['WMCore.Database.__init__', 'WMCore.Database.CMSCouch',
+                                     'WMCore.Database.CouchUtils'],
+                        'systems': ['wmc-base', 'wmc-rest'],
                         'statics': ['src/couchapps/WMStats+',
                                     'src/couchapps/WMStatsErl+',
                                     'src/couchapps/WorkloadSummary+',
