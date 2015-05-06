@@ -425,13 +425,13 @@ class TaskArchiverPoller(BaseWorkerThread):
                             
                         logging.info("status updated to '%s' : %s" % (newState, workflow))
         
-                except TaskArchiverPollerException, ex:
+                except TaskArchiverPollerException as ex:
                     #Something didn't go well when notifying the workqueue, abort!!!
                     logging.error("Something bad happened while archiving tasks.")
                     logging.error(str(ex))
                     self.sendAlert(1, msg = str(ex))
                     continue
-                except Exception, ex:
+                except Exception as ex:
                     #Something didn't go well on couch, abort!!!
                     msg = "Couldn't upload summary for workflow %s, will try again next time\n" % workflow
                     msg += "Nothing will be deleted until the summary is in couch\n"
