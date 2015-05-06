@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#pylint: disable-msg=W6501, W0142
+#pylint: disable=W6501, W0142
 # W6501: pass information to logging using string arguments
 # W0142: Some people like ** magic
 """
@@ -257,7 +257,7 @@ class TaskArchiverPoller(BaseWorkerThread):
             logging.debug("Using url %s/%s for job" % (jobDBurl, jobDBName))
             logging.debug("Writing to  %s/%s for workloadSummary" % (sanitizeURL(workDBurl)['url'], workDBName))
             self.requireCouch = getattr(self.config.TaskArchiver, 'requireCouch', False)
-        except Exception, ex:
+        except Exception as ex:
             msg =  "Error in connecting to couch.\n"
             msg += str(ex)
             logging.error(msg)
@@ -305,7 +305,7 @@ class TaskArchiverPoller(BaseWorkerThread):
                    and getattr(myThread.transaction, 'transaction', False):
                 myThread.transaction.rollback()
             raise
-        except Exception, ex:
+        except Exception as ex:
             myThread = threading.currentThread()
             msg = "Caught exception in TaskArchiver\n"
             msg += str(ex)
@@ -370,7 +370,7 @@ class TaskArchiverPoller(BaseWorkerThread):
             forceCompleteWorkflows = self.centralCouchDBWriter.getRequestByStatus(["force-complete"]);
             logging.info("List of 'force-complete' workflows in central couch: %s" % forceCompleteWorkflows)
             
-        except Exception, ex:
+        except Exception as ex:
             centralCouchAlive = False
             logging.error("we will try again when remote couch server comes back\n%s" % str(ex))
         
@@ -424,7 +424,7 @@ class TaskArchiverPoller(BaseWorkerThread):
                                 self.reqmgrSvc.updateRequestStatus(workflow, newState)
                             
                         logging.info("status updated to '%s' : %s" % (newState, workflow))
-        
+
                 except TaskArchiverPollerException as ex:
                     #Something didn't go well when notifying the workqueue, abort!!!
                     logging.error("Something bad happened while archiving tasks.")
@@ -457,7 +457,7 @@ class TaskArchiverPoller(BaseWorkerThread):
                 #Subscription wasn't known to WorkQueue, feel free to clean up
                 logging.info("Local WorkQueue knows nothing about this subscription: %s" % sub)
                 pass
-            except Exception, ex:
+            except Exception as ex:
                 msg = "Error talking to workqueue: %s\n" % str(ex)
                 msg += "Tried to complete the following: %s\n" % sub
                 raise TaskArchiverPollerException(msg)
@@ -582,7 +582,7 @@ class TaskArchiverPoller(BaseWorkerThread):
                     else:
                         logging.error("Attempted to delete sandbox dir but it was already gone: %s" % sandboxDir)
 
-            except Exception, ex:
+            except Exception as ex:
                 msg = "Critical error while deleting workflow %s\n" % workflow
                 msg += str(ex)
                 msg += str(traceback.format_exc())
@@ -655,7 +655,7 @@ class TaskArchiverPoller(BaseWorkerThread):
                                                                                        "endkey": [workflowName, {}],
                                                                                        "reduce": False})
             outputList = json.loads(outputListStr)
-        except Exception, ex:
+        except Exception as ex:
             # Catch couch errors
             logging.error("Could not load the output task mapping list due to an error")
             logging.error("Error: %s" % str(ex))
@@ -671,7 +671,7 @@ class TaskArchiverPoller(BaseWorkerThread):
         try:
             workflowData["ACDCServer"]   = sanitizeURL(self.config.ACDC.couchurl)['url']
             workflowData["ACDCDatabase"] = self.config.ACDC.database
-        except AttributeError, ex:
+        except AttributeError as ex:
             # We're missing the ACDC info.
             # Keep going
             logging.error("ACDC info missing from config.  Skipping this step in the workflow summary.")
@@ -825,7 +825,7 @@ class TaskArchiverPoller(BaseWorkerThread):
                                                             keys = spec.listAllTaskPathNames())
             logArchivesTask = json.loads(logArchivesTaskStr)
             return logArchivesTask
-        except Exception, ex:
+        except Exception as ex:
             logging.error("Couldn't load the logCollect list from CouchDB.")
             logging.error("Error: %s" % str(ex))
             return {}
@@ -924,10 +924,10 @@ class TaskArchiverPoller(BaseWorkerThread):
                                                                                "stale" : "update_after"})['rows'][0]['value']['lfn']
                             x['logArchive'] = logArchive.split('/')[-1]
                             x['logCollect'] = logCollect
-                        except IndexError, ex:
+                        except IndexError as ex:
                             logging.debug("Unable to find final logArchive tarball for %i" % x['jobID'])
                             logging.debug(str(ex))
-                        except KeyError, ex:
+                        except KeyError as ex:
                             logging.debug("Unable to find final logArchive tarball for %i" % x['jobID'])
                             logging.debug(str(ex))
 
@@ -1054,7 +1054,7 @@ class TaskArchiverPoller(BaseWorkerThread):
             if response.status != 200 :
                 logging.info("Something went wrong while fetching Reco performance from DQM, response code %d " % response.code)
                 return False
-        except Exception, ex:
+        except Exception as ex:
             logging.error('Couldnt fetch DQM Performance data for dataset %s , Run %s' % (dataset, run))
             logging.exception(ex) #Let's print the stacktrace with generic Exception
             return False     
@@ -1062,7 +1062,7 @@ class TaskArchiverPoller(BaseWorkerThread):
         try:
             if responseJSON["hist"]["bins"].has_key("content"):
                 return responseJSON
-        except Exception, ex:                    
+        except Exception as ex:                    
             logging.info("Actually got a JSON from DQM perf in for %s run %d , but content was bad, Bailing out"
                          % (dataset, run))
             return False
@@ -1111,7 +1111,7 @@ class TaskArchiverPoller(BaseWorkerThread):
             if response.code != 200 :
                 logging.info("Something went wrong while uploading to DashBoard, response code %d " % response.code)
                 return False
-        except Exception, ex:
+        except Exception as ex:
             logging.error('Performance data : DashBoard upload failed for PD %s Release %s' % (PD, release))
             logging.exception(ex) #Let's print the stacktrace with generic Exception
             return False        
@@ -1131,7 +1131,7 @@ class TaskArchiverPoller(BaseWorkerThread):
 
         try:
             return uploadPublishWorkflow(self.config, workflow, ufcEndpoint=self.userFileCacheURL, workDir=workDir)
-        except Exception, ex:
+        except Exception as ex:
             logging.error('Upload failed for workflow: %s' % (workflow))
             logging.exception(ex) #Let's print the stacktrace with generic Exception
             return False

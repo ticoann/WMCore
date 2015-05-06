@@ -34,7 +34,7 @@ class RequestManagerTest(RESTBaseUnitTest):
         self.config.setFormatter('WMCore.WebTools.RESTFormatter')
         self.config.setupRequestConfig()
         self.config.setupCouchDatabase(dbName = self.couchDBName)
-        self.config.setPort(8888)
+        self.config.setPort(8899)
         self.schemaModules = ["WMCore.RequestManager.RequestDB"]
                 
         
@@ -62,7 +62,7 @@ class RequestManagerTest(RESTBaseUnitTest):
         try:
             r = self.jsonSender.put('request/' + schema['RequestName'], schema)
             self.requestName = r[0]['RequestName']
-        except Exception, ex:
+        except Exception as ex:
             print "Exception during set up, reason: %s" % ex
             raise ex
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#pylint: disable-msg=W1201
+#pylint: disable=W1201
 # W1201: Allow string formatting in logging messages
 """
 _Step.Executor.CMSSW_
@@ -116,7 +116,7 @@ class CMSSW(Executor):
         #
         try:
             os.environ['FRONTIER_ID'] = 'wmagent_%s' % (self.report.data.workload)
-        except Exception, ex:
+        except Exception as ex:
             logging.error('Have critical error in setting FRONTIER_ID: %s' % str(ex))
             logging.error('Continuing, as this is not a critical function yet.')
             pass
@@ -135,7 +135,7 @@ class CMSSW(Executor):
         logging.info("Runing SCRAM")
         try:
             projectOutcome = scram.project()
-        except Exception, ex:
+        except Exception as ex:
             msg =  "Exception raised while running scram.\n"
             msg += str(ex)
             logging.critical("Error running SCRAM")
@@ -207,18 +207,17 @@ class CMSSW(Executor):
                 raise WMExecutionFailure(60515, "PreScriptScramFailure", msg)
 
 
-        configPath = "%s/%s-main.sh" % (self.step.builder.workingDir,
-                                        self.stepName)
+        configPath = "%s/%s-main.sh" % (self.step.builder.workingDir, self.stepName)
         handle = open(configPath, 'w')
         handle.write(configBlob)
         handle.close()
+
         # spawn this new process
         # the script looks for:
-        # <SCRAM_COMMAND> <SCRAM_PROJECT> <CMSSW_VERSION> <JOB_REPORT> <EXECUTABLE>
-        #    <CONFIG>
+        # <SCRAM_COMMAND> <SCRAM_PROJECT> <CMSSW_VERSION> <JOB_REPORT> <EXECUTABLE> <CONFIG>
         # open the output files
-        stdoutHandle = open( self.step.output.stdout , 'w')
-        stderrHandle = open( self.step.output.stderr , 'w')
+        stdoutHandle = open(self.step.output.stdout , 'w')
+        stderrHandle = open(self.step.output.stderr , 'w')
         applicationStart = time.time()
         args = ['/bin/bash', configPath, scramSetup,
                                          scramArch,
@@ -232,41 +231,23 @@ class CMSSW(Executor):
                                          userFiles,
                                          cmsswArguments]
         logging.info("Executing CMSSW. args: %s" % args)
-        spawnedChild = subprocess.Popen( args, 0, None, None, stdoutHandle,
-                                             stderrHandle )
-        #(stdoutData, stderrData) = spawnedChild.communicate()
-        # the above line replaces the bottom block. I'm unsure of why
-        # nobody used communicate(), but I'm leaving this just in case
-        # AMM Jul 4th, /2010
-        # loop and collect the data
-        while True:
-            (rdready, wrready, errready) = select.select(
-                [stdoutHandle.fileno(),
-                 stderrHandle.fileno()],[],[])
-            # see if the process is still running
-            spawnedChild.poll()
-            if (spawnedChild.returncode != None):
-                break
-            # give the process some time to fill a buffer
-            select.select([], [], [], .1)
+        returncode = subprocess.call(args, stdout = stdoutHandle, stderr = stderrHandle)
 
-        spawnedChild.wait()
         stdoutHandle.close()
         stderrHandle.close()
 
-        self.step.execution.exitStatus = spawnedChild.returncode
+        self.step.execution.exitStatus = returncode
         argsDump = { 'arguments': args}
 
-        if spawnedChild.returncode != 0:
+        if returncode != 0:
             msg = "Error running cmsRun\n%s\n" % argsDump
-            msg += "Return code: %s\n" % spawnedChild.returncode
+            msg += "Return code: %s\n" % returncode
             logging.critical(msg)
-            raise WMExecutionFailure(spawnedChild.returncode,
-                                     "CmsRunFailure", msg)
+            raise WMExecutionFailure(returncode, "CmsRunFailure", msg)
 
         try:
             self.report.parse(jobReportXML, stepName = self.stepName)
-        except Exception, ex:
+        except Exception as ex:
             # Catch it if something goes wrong
             raise WMExecutionFailure(50115, "BadJobReportXML", str(ex))
 

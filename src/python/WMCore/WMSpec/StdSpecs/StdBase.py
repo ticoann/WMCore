@@ -71,7 +71,7 @@ class StdBase(object):
                     defaultValue = argumentDefinition[arg]["default"]
                     setattr(self, argumentDefinition[arg]["attr"], defaultValue)
                     self.schema[arg] = defaultValue
-            except Exception, ex:
+            except Exception as ex:
                 raise WMSpecFactoryException("parameter %s: %s" % (arg, str(ex)))
 
         # Definition of parameters that depend on the value of others
@@ -815,7 +815,7 @@ class StdBase(object):
         try:
             # if dtail option is set return outputModules
             return configCache.validate(configID)
-        except ConfigCacheException, ex:
+        except ConfigCacheException as ex:
             self.raiseValidationException(ex.message())
 
     
@@ -949,7 +949,7 @@ class StdBase(object):
                      "SubscriptionPriority" : {"default" : "Low", "assign_optional": True,
                                                "validate" : lambda x: x in ["Low", "Normal", "High"]},
                      # should be Move Replica  
-                     "CustodialSubType" : {"default" : "Move", "type" : str, "assign_optional": True,
+                     "CustodialSubType" : {"default" : "Replica", "type" : str, "assign_optional": True,
                                            "validate" : lambda x: x in ["Move", "Replica"]},
                      "NonCustodialSubType" : {"default" : "Replica", "type" : str, "assign_optional": True,
                                               "validate" : lambda x: x in ["Move", "Replica"]},

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#pylint: disable-msg=W0142
+#pylint: disable=W0142
 # W0142: Dave likes himself some **
 """
 _Report_
@@ -148,7 +148,7 @@ class Report:
         from WMCore.FwkJobReport.XMLParser import xmlToJobReport
         try:
             xmlToJobReport(self, xmlfile)
-        except Exception, ex:
+        except Exception as ex:
             msg = "Error reading XML job report file, possibly corrupt XML File:\n"
             msg += "Details: %s" % str(ex)
             crashMessage = "\nStacktrace:\n"
@@ -1049,11 +1049,20 @@ class Report:
             return []
 
         analysisFiles = stepReport.analysis.files
-        result = []
-        for fileNum in range(analysisFiles.fileCount):
-            result.append(getattr(analysisFiles, "file%s" % fileNum))
 
-        return result
+        results = []
+        for fileNum in range(analysisFiles.fileCount):
+            results.append(getattr(analysisFiles, "file%s" % fileNum))
+
+        # filter out duplicates
+        fileNames = []
+        filteredResults = []
+        for result in results:
+            if result.fileName not in fileNames:
+                fileNames.append(result.fileName)
+                filteredResults.append(result)
+
+        return filteredResults
 
 
     def getAllFileRefsFromStep(self, step):

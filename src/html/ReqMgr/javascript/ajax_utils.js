@@ -5,8 +5,8 @@ function cleanConfirmation () {
 }
 function errorMessage(err) {
     // extract X-Error-Detail from server error
-    var pat = 'X-Error-Detail:'
-    var arr = err.split('\n')
+    var pat = 'X-Error-Detail:';
+    var arr = err.split('\n');
     var msg = "<h3>Server error message</h3>";
     for(var i=0; i<arr.length; i++) {
         if(arr[i].startsWith(pat)) {
@@ -42,11 +42,11 @@ function ajaxRequestPrototype(path, parameters) {
       onComplete : function(response) {
           var doc = document.getElementById('confirmation');
           if  (response.status==200 || response.status==201) {
-              doc.innerHTML='SUCCESS! Your request has been processed with status '+response.status;
+              doc.innerHTML='SUCCESS! Your request has been processed with status '+ response.status;
               doc.className='tools-alert tools-alert-green confirmation fadeout shadow';
               setTimeout(cleanConfirmation, 5000);
           } else {
-              doc.innerHTML='WARNING! Your request has been processed with status '+response.status;
+              doc.innerHTML='WARNING! Your request has been processed with status '+ response.status;
               doc.className='tools-alert tools-alert-yellow confirmation fadeout shadow';
               var headers = response.getAllResponseHeaders();
               errorMessage(headers);
@@ -59,10 +59,13 @@ function ajaxRequest(path, parameters, verb) {
     // parameters is dict of parameters passed to the server function
     var request = $.ajax({
         url: path,
-        data: parameters,
+        //headers: {"Accept": "application/json", "Content-Type": "application/json"},
+        contentType: "application/json",
+        data: JSON.stringify(parameters),
         type: verb || 'POST',
         // headers: {"X-HTTP-Method-Override": "PUT"}, // X-HTTP-Method-Override set to PUT.
         dataType: "json",
+        
         cache: false,
         beforeSend: function() {
             var doc = document.getElementById('confirmation');
@@ -90,10 +93,28 @@ function ajaxRequest(path, parameters, verb) {
             doc.className='tools-alert tools-alert-green confirmation fadeout shadow';
             setTimeout(cleanConfirmation, 5000);
         } else {
-            doc.innerHTML='WARNING! Your request has been processed with status code '+arg1.status+' and '+msg+' '+arg2;
-            doc.className='tools-alert tools-alert-yellow confirmation fadeout shadow';
-            var headers = xhr.getAllResponseHeaders();
+            //doc.innerHTML='WARNING! Your request has been processed with status code '+ arg1.status+' and '+msg+' '+arg2;
+            //doc.className='tools-alert tools-alert-yellow confirmation fadeout shadow';
+            var headers = arg1.getAllResponseHeaders();
             errorMessage(headers);
         }
     });
 }
+
+
+$.fn.serializeObject = function()
+{
+    var o = {};
+    var a = this.serializeArray();
+    $.each(a, function() {
+        if (o[this.name] !== undefined) {
+            if (!o[this.name].push) {
+                o[this.name] = [o[this.name]];
+            }
+            o[this.name].push(this.value || '');
+        } else {
+            o[this.name] = this.value || '';
+        }
+    });
+    return o;
+};
