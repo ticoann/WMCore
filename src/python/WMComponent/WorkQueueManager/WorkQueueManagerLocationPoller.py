@@ -7,6 +7,7 @@ __all__ = []
 
 import time
 import random
+import traceback
 
 from WMCore.WorkerThreads.BaseWorkerThread import BaseWorkerThread
 
@@ -40,4 +41,5 @@ class WorkQueueManagerLocationPoller(BaseWorkerThread):
         try:
             self.queue.updateLocationInfo()
         except Exception, ex:
-            self.queue.logger.error("Error updating locations: %s" % str(ex))
+            msg = traceback.format_exc()
+            self.queue.logger.error("Error updating locations: %s" % msg)

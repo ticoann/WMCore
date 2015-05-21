@@ -9,6 +9,7 @@ __all__ = []
 
 import time
 import random
+import traceback
 
 from WMCore.WorkerThreads.BaseWorkerThread import BaseWorkerThread
 from WMCore.WorkQueue.WMBSHelper import freeSlots
@@ -48,7 +49,8 @@ class WorkQueueManagerWMBSFileFeeder(BaseWorkerThread):
             try:
                 self.getWorks()
             except Exception, ex:
-                self.queue.logger.error("Error in wmbs inject loop: %s" % str(ex))
+                msg = traceback.format_exc()
+                self.queue.logger.error("Error in wmbs inject loop: %s" % msg)
 
     def getWorks(self):
         """

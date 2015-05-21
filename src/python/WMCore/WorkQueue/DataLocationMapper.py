@@ -226,6 +226,7 @@ class WorkQueueDataLocationMapper(DataLocationMapper):
                                     element['ParentData'][pData] = locations
                                 else:
                                     self.logger.info(data + ': Adding locations: ' + ', '.join(locations))
+                                    print "DDDD %s" % pData['Sites']
                                     element['ParentData'][pData] = list(set(pData['Sites']) | set(locations))
                                 modified.append(element)
                                 break

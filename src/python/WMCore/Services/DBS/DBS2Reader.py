@@ -445,6 +445,7 @@ class DBS2Reader:
             msg = "Error in "
             msg += "DBSReader.lfnsInBlock(%s)\n" % fileBlockName
             msg += "%s\n" % formatEx(ex)
+            print msg
             raise DBSReaderError(msg)
 
         result = []

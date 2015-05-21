@@ -403,8 +403,16 @@ class WMBSHelper(WMConnectionBase):
         self.beginTransaction()
 
         self.createTopLevelFileset()
-        sub = self.createSubscription(self.topLevelTask, self.topLevelFileset)
-
+        try:
+            sub = self.createSubscription(self.topLevelTask, self.topLevelFileset)
+        except Exception as ex:
+            myThread = threading.currentThread()
+            myThread.transaction.rollback()
+            import traceback
+            msg = traceback.format_exc()
+            logging.error("ErrorXXXXX %s" % msg)
+            raise ex
+            
         if block != None:
             logging.info('"%s" Injecting block %s (%d files) into wmbs' % (self.wmSpec.name(),
                                                                            self.block,

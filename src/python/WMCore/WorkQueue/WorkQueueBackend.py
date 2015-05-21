@@ -8,6 +8,7 @@ Interface to WorkQueue persistent storage
 import random
 import time
 import urllib
+import traceback
 
 from WMCore.Database.CMSCouch import CouchServer, CouchNotFoundError, Document, CouchMonitor
 from WMCore.WorkQueue.WorkQueueExceptions import WorkQueueNoMatchingElements
@@ -378,18 +379,20 @@ class WorkQueueBackend(object):
                     # Count the number of jobs currently running of greater priority
                     prio = element['Priority']
                     curJobCount = sum(map(lambda x : x[1] if x[0] >= prio else 0, siteJobCounts.get(site, {}).items()))
-                    self.logger.debug("Job Count: %s, site: %s threshods: %s" % (curJobCount, site, thresholds[site]))
+                    self.logger.info("Job Count: %s, site: %s threshods: %s" % (curJobCount, site, thresholds[site]))
                     if curJobCount < thresholds[site]:
                         possibleSite = site
                         break
-
+                    else:
+                        msg = traceback.format_exc()
+                        self.logger.info("where this called: %s" % msg)
             if possibleSite:
                 elements.append(element)
                 if site not in siteJobCounts:
                     siteJobCounts[site] = {}
                 siteJobCounts[site][prio] = siteJobCounts[site].setdefault(prio, 0) + element['Jobs']
             else:
-                self.logger.info("No possible site for %s" % element)
+                self.logger.info("No possible site for %s: jobs %s" % (element._id, element['Jobs']))
         # sort elements to get them in priority first and timestamp order
         elements.sort(key=lambda element: element['CreationTime'])
         elements.sort(key = lambda x: x['Priority'], reverse = True)

@@ -114,7 +114,7 @@ class WorkQueue(WorkQueueBase):
 
         self.params.setdefault("GlobalDBS",
                                "https://cmsweb.cern.ch/dbs/prod/global/DBSReader")
-        self.params.setdefault('QueueDepth', 0.5) # when less than this locally
+        self.params.setdefault('QueueDepth', 2) # when less than this locally
         self.params.setdefault('LocationRefreshInterval', 600)
         self.params.setdefault('FullLocationRefreshInterval', 7200)
         self.params.setdefault('TrackLocationOrSubscription', 'subscription')
@@ -307,6 +307,7 @@ class WorkQueue(WorkQueueBase):
         if not self.backend.isAvailable():
             self.logger.warning('Backend busy or down: skipping fetching of work')
             return results
+        self.logger.error('XXXXXXXX - from get work')
         matches, _, _ = self.backend.availableWork(jobSlots, siteJobCounts)
 
         if not matches:
@@ -316,6 +317,7 @@ class WorkQueue(WorkQueueBase):
         #TODO: Check to see if we can skip spec loading - need to persist some more details to element
         wmspecCache = {}
         for match in matches:
+            skipMatch = False
             blockName, dbsBlock = None, None
             if self.params['PopulateFilesets']:
                 if not wmspecCache.has_key(match['RequestName']):
@@ -326,13 +328,18 @@ class WorkQueue(WorkQueueBase):
 
                 if match['Inputs']:
                     blockName, dbsBlock = self._getDBSBlock(match, wmspec)
-
-                match['Subscription'] = self._wmbsPreparation(match,
-                                                              wmspec,
-                                                              blockName,
-                                                              dbsBlock)
-
-            results.append(match)
+                
+                try:
+                    match['Subscription'] = self._wmbsPreparation(match,
+                                                                  wmspec,
+                                                                  blockName,
+                                                                  dbsBlock)
+                except Exception as ex:
+                    skipMatch = True
+                    self.logger.error("GGGGGG %s, %s failed investigate" % (wmspec.name(), blockName))
+            
+            if not skipMatch:
+                results.append(match)
 
         del wmspecCache # remove cache explicitly
         self.logger.info('Injected %s units into WMBS' % len(results))
@@ -694,6 +701,7 @@ class WorkQueue(WorkQueueBase):
             from WMCore.WorkQueue.WMBSHelper import freeSlots
             thresholds, jobCounts = freeSlots(self.params['QueueDepth'], knownCmsSites = cmsSiteNames())
             # resources for new work are free wmbs resources minus what we already have queued
+            self.logger.error('YYYYYYYY - from pull work %s' % jobCounts)
             _, resources, jobCounts = self.backend.availableWork(thresholds, jobCounts)
 
         if not resources:
@@ -715,6 +723,7 @@ class WorkQueue(WorkQueueBase):
 
         self.logger.info("Pull work for sites %s: " % str(resources))
 
+        self.logger.error('VVVVVVV - from pull work parent %s' % jobCounts)
         work, _, _ = self.parent_queue.availableWork(resources, jobCounts, self.params['Teams'])
 
         if not work:

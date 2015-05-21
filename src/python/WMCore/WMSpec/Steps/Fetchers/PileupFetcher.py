@@ -53,9 +53,15 @@ class PileupFetcher(FetcherInterface):
                 # DBS listBlocks returns list of DbsFileBlock objects for each dataset,
                 # iterate over and query each block to get list of files
                 for dbsBlockName in blockNames:
-                    blockDict[dbsBlockName] = {"FileList": sorted(dbsReader.lfnsInBlock(dbsBlockName)),
-                                               "StorageElementNames": dbsReader.listFileBlockLocation(dbsBlockName),
-                                               "NumberOfEvents" : dbsReader.getDBSSummaryInfo(block = dbsBlockName)['NumberOfEvents']}
+                    try:
+                        blockDict[dbsBlockName] = {"FileList": sorted(dbsReader.lfnsInBlock(dbsBlockName)),
+                                                   "StorageElementNames": dbsReader.listFileBlockLocation(dbsBlockName),
+                                                   "NumberOfEvents" : dbsReader.getDBSSummaryInfo(block = dbsBlockName)['NumberOfEvents']}
+                    except Exception, ex:
+                        print "DBS call block failed %s" % dbsBlockName
+                        print str(ex)
+                        raise ex
+                    
             resultDict[pileupType] = blockDict
         return resultDict
 

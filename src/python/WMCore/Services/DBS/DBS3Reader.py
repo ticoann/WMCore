@@ -546,6 +546,7 @@ class DBS3Reader:
             msg = "Error in "
             msg += "DBSReader.listFilesInBlock(%s)\n" % fileBlockName
             msg += "%s\n" % formatEx3(ex)
+            print "66666666 %s " % msg
             raise DBSReaderError(msg)
 
 
