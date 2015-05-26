@@ -565,8 +565,12 @@ class DBS3Reader:
             try:
                 blockInfo = self.phedex.getReplicaSEForBlocks(phedexNodes=phedexNodes, block=blockNames, complete='y')
             except Exception, ex:
+                import traceback
+                msg2 = traceback.format_exc()
                 msg = "Error while getting block location from PhEDEx for block_name=%s)\n" % fileBlockName
                 msg += "%s\n" % str(ex)
+                msg += msg2
+                print "BLOCK-YYYY %s" % msg2
                 raise Exception(msg)
 
             if not blockInfo or len(blockInfo) != len(blockNames): #if we couldnt get data location from PhEDEx, try to look into origin site location from dbs
@@ -752,8 +756,12 @@ class DBS3Reader:
             try:
                 blocksInfo = self.phedex.getReplicaSEForBlocks(dataset=[datasetName],complete='y')
             except Exception, ex:
+                import traceback
+                msg2 = traceback.format_exc()
                 msg = "Error while getting block location from PhEDEx for dataset=%s)\n" % datasetName
                 msg += "%s\n" % str(ex)
+                msg += msg2
+                print "Dataset-YYYY %s" % msg2
                 raise Exception(msg)
 
             if not blocksInfo: # if we couldnt get data location from PhEDEx, try to look into origin site location from dbs
