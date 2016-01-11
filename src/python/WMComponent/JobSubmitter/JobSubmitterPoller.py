@@ -252,9 +252,12 @@ class JobSubmitterPoller(BaseWorkerThread):
             self.workflowPrios[workflow['name']] = workflow['priority']
 
         logging.info("Querying WMBS for jobs to be submitted...")
-        newJobs = self.listJobsAction.execute()
-        logging.info("Found %s new jobs to be submitted.", len(newJobs))
-
+        if len(self.cachedJobIDs) < 5000:
+            newJobs = self.listJobsAction.execute()
+            logging.info("Found %s new jobs to be submitted.", len(newJobs))
+        else:
+            newJobs = []
+            logging.info("Skipping new jobs to be submitted.")
         logging.info("Determining possible sites for new jobs...")
         jobCount = 0
         for newJob in newJobs:
@@ -710,7 +713,8 @@ class JobSubmitterPoller(BaseWorkerThread):
                         breakLoop, exitLoop = True, True
 
                     # Deal with accounting
-                    nJobsRequired -= 1
+                    if len(possibleSites) == 1:
+                        nJobsRequired -= 1
                     totalPending += 1
                     taskPending += 1
 
