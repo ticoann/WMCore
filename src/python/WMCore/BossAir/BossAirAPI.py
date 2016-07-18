@@ -185,20 +185,19 @@ class BossAirAPI(WMConnectionBase):
         """
 
         existingTransaction = self.beginTransaction()
-
         if active:
             runJobDicts = self.runningJobDAO.execute(conn=self.getDBConn(),
                                                      transaction=self.existingTransaction())
         else:
             runJobDicts = self.completeJobDAO.execute(conn=self.getDBConn(),
                                                       transaction=self.existingTransaction())
+        self.commitTransaction(existingTransaction)
+
         runJobs = []
         for jDict in runJobDicts:
             rj = RunJob()
             rj.update(jDict)
             runJobs.append(rj)
-
-        self.commitTransaction(existingTransaction)
 
         return runJobs
 
