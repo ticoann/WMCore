@@ -72,6 +72,11 @@ class StdBase(object):
                     self.schema[arg] = defaultValue
             except Exception as ex:
                 raise WMSpecFactoryException("parameter %s: %s" % (arg, str(ex)))
+        
+        additionalArguments =set(arguments.keys()).difference(set(argumentDefinition.keys()))
+        
+        if len(additionalArguments) > 0:
+            raise WMSpecFactoryException("not defined parameters %s: remove it" % additionalArguments)
 
         # Definition of parameters that depend on the value of others
         if hasattr(self, "multicore") and self.multicore:
