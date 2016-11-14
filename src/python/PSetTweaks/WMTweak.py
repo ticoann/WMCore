@@ -10,6 +10,7 @@ process/config but does not depend on any CMSSW libraries. It needs to stay like
 from __future__ import print_function
 import logging
 import pickle
+import uuid
 
 from PSetTweaks.PSetTweak import PSetTweak
 from PSetTweaks.PSetTweak import parameterIterator, psetIterator
@@ -504,13 +505,13 @@ def makeOutputTweak(outMod, job):
     result = PSetTweak()
     # output filenames
     modName = str(getattr(outMod, "_internal_name"))
-    fileName = "%s.root" % modName
+    fileName = "%s.root" % str(uuid.uuid1())
 
     result.addParameter("process.%s.fileName" % modName, fileName)
 
     lfnBase = str(getattr(outMod, "lfnBase", None))
     if lfnBase != None:
-        lfn = "%s/%s/%s.root" % (lfnBase, lfnGroup(job), modName)
+        lfn = "%s/%s/%s" % (lfnBase, lfnGroup(job), fileName)
         result.addParameter("process.%s.logicalFileName" % modName, lfn)
 
 
