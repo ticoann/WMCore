@@ -1,14 +1,9 @@
-'''
-Created on May 19, 2015
-
-'''
-
 from __future__ import (division, print_function)
 
 from Utils.CherryPyPeriodicTask import CherryPyPeriodicTask
-from WMCore.ReqMgr.Service.Auxiliary import update_software
+from WMCore.WorkQueue.WorkQueueUtils import queueFromConfig
 
-class UpdateAuxDBTasks(CherryPyPeriodicTask):
+class LocationUpdateTasks(CherryPyPeriodicTask):
 
     def __init__(self, rest, config):
 
@@ -18,11 +13,14 @@ class UpdateAuxDBTasks(CherryPyPeriodicTask):
         """
         sets the list of functions which
         """
-        self.concurrentTasks = [{'func': self.updateCMSSW, 'duration': config.cupdateCMSSWDuration}]
+        self.concurrentTasks = [{'func': self.updateDataLocation, 'duration': config.locationUpdateDuration}]
 
-    def updateCMSSW(self, config):
+    def updateDataLocation(self, config):
         """
         gather active data statistics
         """
         
-        update_software(config)
+        globalQ = queueFromConfig(config)
+        globalQ.updateLocationInfo()
+                  
+        return
