@@ -386,7 +386,13 @@ def _get_all_scramarchs_and_versions(url):
                     sw_releases.append(str(attr.value))
         result[str(arch)] = sw_releases
     return result
-    
+
+def update_cmssw(config):
+    from WMCore.ReqMgr.Tools.cms import TC
+    all_archs_and_versions = TC.releases_by_architecture()
+    doc = Document(id="software", inputDict=all_archs_and_versions)
+    couchdb = Database(dbname="reqmgr_auxiliary", url="https://cmsweb-testbed.cern.ch/couchdb")
+    return couchdb.commitOne(doc)
     
 def update_software(config_file):
     """
