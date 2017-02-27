@@ -298,5 +298,6 @@ def loadSpecByType(specType):
 
 def checkDBSURL(url):
     # import DBS3Reader here, since Runtime code import this module and worker node doesn't have dbs3 client
-    from WMCore.Services.DBS.DBS3Reader import DBS3Reader
-    return DBS3Reader(url).checkDBSServer()
+    #from WMCore.Services.DBS.DBS3Reader import DBS3Reader
+    #return DBS3Reader(url).checkDBSServer()
+    return True

@@ -234,7 +234,7 @@ class StepChainTests(unittest.TestCase):
         self.testInit.delWorkDir()
         return
 
-    def testStepChainSingleStep(self):
+    def atestStepChainSingleStep(self):
         """
         Build a StepChain with a single step and no input dataset
         """
@@ -291,7 +291,7 @@ class StepChainTests(unittest.TestCase):
 
         return
 
-    def testStepChainMC(self):
+    def atestStepChainMC(self):
         """
         Build a StepChain workload starting from scratch
         """
@@ -436,7 +436,7 @@ class StepChainTests(unittest.TestCase):
 
         return
 
-    def testStepChainReDigi(self):
+    def atestStepChainReDigi(self):
         """
         Build a StepChain workload with input dataset in the first step
         """
@@ -522,7 +522,130 @@ class StepChainTests(unittest.TestCase):
                 '/PrimaryDataset-StepChain/AcquisitionEra_StepChain-FilterC-ProcessingString_StepChain-v1/GEN-SIM-RECO' in outDsets)
         return
 
-    def testStepMapping(self):
+
+    def testStepChainOutput(self):
+        """
+        Build a StepChain workload defining different processed dataset name among the steps
+        """
+        testArguments = StepChainWorkloadFactory.getTestArguments()
+        testArguments.update(REQUEST)
+
+        configDocs = injectStepChainConfigMC(self.configDatabase)
+        for s in ['Step1', 'Step2', 'Step3']:
+            testArguments[s]['ConfigCacheID'] = configDocs[s]
+            testArguments[s]['AcquisitionEra'] = 'AcqEra_' + s
+            testArguments[s]['ProcessingString'] = 'ProcStr_' + s
+        testArguments['Step2']['KeepOutput'] = False
+        #pprint(testArguments)
+
+        factory = StepChainWorkloadFactory()
+        import pdb
+        pdb.set_trace()
+        testWorkload = factory.factoryWorkloadConstruction("TestWorkload", testArguments)
+
+        # test workload properties
+        self.assertEqual(testWorkload.getAcquisitionEra(), "AcquisitionEra_StepChain")
+        self.assertEqual(testWorkload.getProcessingString(), "ProcessingString_StepChain")
+        self.assertEqual(testWorkload.getProcessingVersion(), 1)
+
+        # test workload tasks and steps
+        tasks = testWorkload.listAllTaskNames()
+        self.assertEqual(len(tasks), 10)
+        for t in ['GENSIM', 'GENSIMMergeRAWSIMoutput', 'RECOMergeAODSIMoutput', 'RECOMergeRECOSIMoutput',
+                  'GENSIMRAWSIMoutputMergeLogCollect', 'RECOAODSIMoutputMergeLogCollect',
+                  'RECORECOSIMoutputMergeLogCollect']:
+            self.assertTrue(t in tasks, "Wrong task name")
+        self.assertFalse('ProdMinBiasMergeAODSIMoutput' in tasks, "Wrong task name")
+
+        task = testWorkload.getTask(tasks[0])
+        self.assertEqual(task.name(), "GENSIM")
+        self.assertEqual(task.getPathName(), "/TestWorkload/GENSIM")
+        self.assertEqual(task.taskType(), "Production", "Wrong task type")
+
+        # test workload and task output data stuff
+        self.assertEqual(sorted(task.listAllStepNames()), ['cmsRun1', 'cmsRun2', 'cmsRun3', 'logArch1', 'stageOut1'])
+        outModsAndDsets = task.listOutputDatasetsAndModules()
+        #pprint(outModsAndDsets)
+        outMods = [elem['outputModule'] for elem in outModsAndDsets]
+        outDsets = [elem['outputDataset'] for elem in outModsAndDsets]
+        self.assertItemsEqual(outMods, ['RAWSIMoutput', 'AODSIMoutput', 'RECOSIMoutput'], "Wrong output modules")
+        print outMods
+        print outDsets
+        self.assertTrue('/PrimaryDataset-StepChain/AcqEra_Step1-FilterA-ProcStr_Step1-v1/GEN-SIM' in outDsets)
+        self.assertTrue('/PrimaryDataset-StepChain/AcqEra_Step3-FilterD-ProcStr_Step3-v1/AODSIM' in outDsets)
+        self.assertTrue('/PrimaryDataset-StepChain/AcqEra_Step3-FilterC-ProcStr_Step3-v1/GEN-SIM-RECO' in outDsets)
+
+        step = task.getStepHelper("cmsRun1")
+        self.assertEqual(step.listOutputModules(), [u'RAWSIMoutput'])
+        outputData = step.getOutputModule(u'RAWSIMoutput')
+        #pprint(outputData.dictionary_())
+        self.assertEqual(outputData.dataTier, 'GEN-SIM')
+        self.assertTrue(outputData.transient)
+        self.assertTrue(outputData.lfnBase.startswith('/store/unmerged'))
+        self.assertEqual(outputData.processedDataset, 'AcqEra_Step1-FilterA-ProcStr_Step1-v1')
+
+        step = task.getStepHelper("cmsRun2")
+        self.assertEqual(step.listOutputModules(), [u'RAWSIMoutput'])
+        outputData = step.getOutputModule(u'RAWSIMoutput')
+        #pprint(outputData.dictionary_())
+        self.assertEqual(outputData.dataTier, 'GEN-SIM-RAW')
+        self.assertTrue(outputData.transient)
+        self.assertTrue(outputData.lfnBase.startswith('/store/unmerged'))
+        self.assertEqual(outputData.processedDataset, 'AcqEra_Step2-FilterB-ProcStr_Step2-v1')
+
+        step = task.getStepHelper("cmsRun3")
+        self.assertEqual(step.listOutputModules(), ['AODSIMoutput', 'RECOSIMoutput'])
+        outputData = step.getOutputModule('AODSIMoutput')
+        #pprint(outputData.dictionary_())
+        self.assertEqual(outputData.dataTier, 'AODSIM')
+        self.assertTrue(outputData.transient)
+        self.assertTrue(outputData.lfnBase.startswith('/store/unmerged'))
+        self.assertEqual(outputData.processedDataset, 'AcqEra_Step3-FilterD-ProcStr_Step3-v1')
+        outputData = step.getOutputModule('RECOSIMoutput')
+        #pprint(outputData.dictionary_())
+        self.assertEqual(outputData.dataTier, 'GEN-SIM-RECO')
+        self.assertTrue(outputData.transient)
+        self.assertTrue(outputData.lfnBase.startswith('/store/unmerged'))
+        self.assertEqual(outputData.processedDataset, 'AcqEra_Step3-FilterC-ProcStr_Step3-v1')
+
+        # test merge tasks now
+        task = testWorkload.getTaskByPath('/TestWorkload/GENSIM/GENSIMMergeRAWSIMoutput')
+        self.assertEqual(task.taskType(), "Merge")
+        step = task.getStepHelper("cmsRun1")
+        self.assertEqual(step.listOutputModules(), ['Merged'])
+        outputData = step.getOutputModule('Merged')
+        #pprint(outputData.dictionary_())
+        self.assertEqual(outputData.dataTier, 'GEN-SIM')
+        self.assertFalse(outputData.transient)
+        self.assertTrue(outputData.lfnBase.startswith('/store/data'))
+        self.assertEqual(outputData.processedDataset, 'AcqEra_Step1-FilterA-ProcStr_Step1-v1')
+
+        task = testWorkload.getTaskByPath('/TestWorkload/GENSIM/RECOMergeAODSIMoutput')
+        self.assertEqual(task.taskType(), "Merge")
+        step = task.getStepHelper("cmsRun1")
+        self.assertEqual(step.listOutputModules(), ['Merged'])
+        outputData = step.getOutputModule('Merged')
+        #pprint(outputData.dictionary_())
+        self.assertEqual(outputData.dataTier, 'AODSIM')
+        self.assertFalse(outputData.transient)
+        self.assertTrue(outputData.lfnBase.startswith('/store/data'))
+        self.assertEqual(outputData.processedDataset, 'AcqEra_Step3-FilterD-ProcStr_Step3-v1')
+
+        task = testWorkload.getTaskByPath('/TestWorkload/GENSIM/RECOMergeRECOSIMoutput')
+        self.assertEqual(task.taskType(), "Merge")
+        step = task.getStepHelper("cmsRun1")
+        self.assertEqual(step.listOutputModules(), ['Merged'])
+        outputData = step.getOutputModule('Merged')
+        #pprint(outputData.dictionary_())
+        self.assertEqual(outputData.dataTier, 'GEN-SIM-RECO')
+        self.assertFalse(outputData.transient)
+        self.assertTrue(outputData.lfnBase.startswith('/store/data'))
+        self.assertEqual(outputData.processedDataset, 'AcqEra_Step3-FilterC-ProcStr_Step3-v1')
+
+        return
+    
+    
+    def atestStepMapping(self):
         """
         Build a mapping of steps, input and output modules
         """

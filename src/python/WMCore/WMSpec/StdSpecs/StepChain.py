@@ -244,6 +244,8 @@ class StepChainWorkloadFactory(StdBase):
             parentCmsswStepHelper.keepOutput(parentKeepOutput)
             childKeepOutput = strToBool(taskConf.get('KeepOutput', True))
             childCmsswStepHelper.keepOutput(childKeepOutput)
+            import pdb
+            pdb.set_trace()
             self.setupOutputModules(task, taskConf, currentCmsRun, childKeepOutput, forceTaskName)
 
         # Closing out the task configuration. The last step output must be saved/merged
