@@ -1062,11 +1062,12 @@ class WMWorkloadHelper(PersistencyHelper):
 
         return inputDatasets
 
-    def listOutputDatasets(self, initialTask=None):
+    def listOutputDatasets(self, initialTask=None, onlyTemp=False):
         """
         _listOutputDatasets_
 
         List the names of all the datasets produced by this workflow.
+        If onlyTemp flag is set to True, 
         """
         outputDatasets = []
 
@@ -1078,15 +1079,18 @@ class WMWorkloadHelper(PersistencyHelper):
         for task in taskIterator:
             for stepName in task.listAllStepNames():
                 stepHelper = task.getStepHelper(stepName)
-
-                if not getattr(stepHelper.data.output, "keep", True):
+                
+                keepFlag =  getattr(stepHelper.data.output, "keep", True)
+                skip = keepFlag if onlyTemp else not keepFlag
+                        
+                if skip:
                     continue
 
                 if stepHelper.stepType() == "CMSSW":
                     for outputModuleName in stepHelper.listOutputModules():
                         # Only consider non-transient output
                         outputModule = stepHelper.getOutputModule(outputModuleName)
-                        if getattr(outputModule, "transient", False):
+                        if not onlyTemp or getattr(outputModule, "transient", False):
                             continue
                         outputDataset = "/%s/%s/%s" % (outputModule.primaryDataset,
                                                        outputModule.processedDataset,
@@ -1100,7 +1104,9 @@ class WMWorkloadHelper(PersistencyHelper):
                     outputDatasets.append(anotherDataset)
 
         return outputDatasets
-
+    
+    def listAllOutputModules(self, onlyUnmerdged=True):
+    
     def listPileupDatasets(self, initialTask=None):
         """
         _listPileUpDataset_
