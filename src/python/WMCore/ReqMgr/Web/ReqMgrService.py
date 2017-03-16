@@ -157,6 +157,38 @@ def check_scripts(scripts, resource, path):
                 resource.update({script: spath})
     return scripts
 
+def _map_configcache_url(tConfigs, baseURL, configIDName, configID, taskName=""):
+    if configIDName.endswith('ConfigCacheID') and configID is not None:
+        url = "%s/reqmgr_config_cache/%s/configFile" % (baseURL, configID)
+        prefix = "%s: " % taskName if taskName else ""
+        task = "%s%s: %s " % (prefix, configIDName, configID)
+        tConfigs.setdefault(task, url)
+    return
+
+def tasks_configs(docs, html=False):
+    "Helper function to provide mapping between tasks and configs"
+    if  not isinstance(docs, list):
+        docs = [docs]
+    tConfigs = {}
+    for doc in docs:
+        name = doc.get('RequestName', '')
+        curl = doc.get('ConfigCacheUrl', 'https://cmsweb.cern.ch/couchdb')
+        if  curl == None or curl == "none":
+            curl = 'https://cmsweb.cern.ch/couchdb'
+        if  not name:
+            continue
+        for key, val in doc.items():
+            _map_configcache_url(tConfigs, curl, key, val)
+            if isinstance(val, dict):
+                for kkk in val.keys():
+                    _map_configcache_url(tConfigs, curl, kkk, val[kkk], key)
+    if  html:
+        out = '<fieldset><legend>Config Files</legend><ul>'
+        for task in sorted(tConfigs):
+            out += '<li><a href="%s" target="config_page">%s</a></li>' % (tConfigs[task], task)
+        out += '</ul></fieldset>'
+        return out
+    return tConfigs
 
 # code taken from
 # http://stackoverflow.com/questions/1254454/fastest-way-to-convert-a-dicts-keys-values-from-unicode-to-str
@@ -496,11 +528,13 @@ class ReqMgrService(TemplatedPage):
                                         table=json2table(filteredDoc, web_ui_names(), visible_attrs, selected),
                                         jsondata=json2form(doc, indent=2, keep_first_value=False),
                                         doc=json.dumps(doc), time=time,
+                                        tasksConfigs=tasks_configs(doc, html=True),
                                         transitions=transitions, ts=tst, user=user(), userdn=user_dn())
         elif len(doc) > 1:
             jsondata = [pprint.pformat(d) for d in doc]
             content = self.templatepage('doc', title='Series of docs: %s' % rid,
                                         table="", jsondata=jsondata, time=time,
+                                        tasksConfigs=tasks_configs(doc, html=True),
                                         transitions=transitions, ts=tst, user=user(), userdn=user_dn())
         else:
             doc = 'No request found for name=%s' % rid
