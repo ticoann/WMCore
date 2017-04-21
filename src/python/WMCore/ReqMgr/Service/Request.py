@@ -184,15 +184,13 @@ class Request(RESTEntity):
                 if args_length == 1:
                     requestName = param.args[0]
                     param.args.pop()
+                elif len(param.args) == 2 and param.args[0] == "clone":
+                    param.kwargs["OriginalRequestName"] = param.args[1]
+                    param.args.pop()
+                    param.args.pop()
                 else:
                     requestName = None
                 self._validateRequestBase(param, safe, validate_request_update_args, requestName)
-                # TO: handle multiple clone
-            #                 if len(param.args) == 2:
-            #                     #validate clone case
-            #                     if param.args[0] == "clone":
-            #                         param.args.pop()
-            #                         return None, request_args
 
             if method == 'POST':
                 args_length = len(param.args)
@@ -221,14 +219,17 @@ class Request(RESTEntity):
                 msg = str(ex)
             raise InvalidSpecParameterValue(msg)
 
-    def initialize_clone(self, request_name):
-        requests = self.reqmgr_db_service.getRequestByNames(request_name)
+    def initialize_clone(self, request_args):
+        requests = self.reqmgr_db_service.getRequestByNames(request_args["OriginalRequestName"])
         clone_args = requests.values()[0]
-        # overwrite the name and time stamp.
-        initialize_request_args(clone_args, self.config, clone=True)
-        # timestamp status update
+        # TODO: need to validate new overwrite request_args here since it will skip the clone_args validtaiton
+        for prop in request_args:
+            clone_args[prop] = request_args[prop]
+        # overwrite the
+        initialize_request_args(clone_args, self.config)
 
         spec = loadSpecByType(clone_args["RequestType"])
+        # for clone validation will be skiped in factoryWorkloadConstruction
         workload = spec.factoryWorkloadConstruction(clone_args["RequestName"],
                                                     clone_args)
         return (workload, clone_args)
@@ -479,7 +480,7 @@ class Request(RESTEntity):
         dn = cherrypy.request.user.get("dn", "unknown")
 
         if workload is None:
-            (workload, request_args) = self.initialize_clone(request_args["OriginalRequestName"])
+            (workload, request_args) = self.initialize_clone(request_args)
             return self.post([workload, request_args])
 
         if "RequestStatus" not in request_args:

@@ -30,8 +30,7 @@ ARGS_TO_REMOVE_FROM_ORIGINAL_REQUEST = \
      'Teams', 'TotalEstimatedJobs', 'TotalInputEvents', 'TotalInputFiles', 'TotalInputLumis',
      'TransientOutputModules', 'TrustPUSitelists', 'TrustSitelists', 'VoRole', '_id', '_rev']
 
-
-def initialize_request_args(request, config, clone=False):
+def initialize_request_args(request, config):
     """
     Request data class request is a dictionary representing
     a being injected / created request. This method initializes
@@ -55,19 +54,13 @@ def initialize_request_args(request, config, clone=False):
                                      "UpdateTime": int(time.time()), "DN": request["RequestorDN"]}]
     request["RequestDate"] = list(time.gmtime()[:6])
 
-    # TODO: generate this automatically from the spec
-    # generate request name using request
-    generateRequestName(request)
+    # update the information from config
+    request["CouchURL"] = config.couch_host
+    request["CouchWorkloadDBName"] = config.couch_reqmgr_db
+    request["CouchDBName"] = config.couch_config_cache_db
 
-    if clone:
-        # if it is clone parameter should contain requestName
-        request["OriginalRequestName"] = request["RequestName"]
-        request["OriginalRequestType"] = request["RequestType"]
-    else:
-        # update the information from config
-        request["CouchURL"] = config.couch_host
-        request["CouchWorkloadDBName"] = config.couch_reqmgr_db
-        request["CouchDBName"] = config.couch_config_cache_db
+    # create request name request["RequestName"]
+    generateRequestName(request)
 
 
 def initialize_resubmission(request_args, acceptedArgs, reqmgr_db_service):
@@ -198,6 +191,3 @@ class RequestInfo(object):
             else:
                 return False
         return True
-
-
-
