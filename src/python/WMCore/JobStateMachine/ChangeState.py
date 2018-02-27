@@ -414,6 +414,7 @@ class ChangeState(WMObject, WMConnectionBase):
                                   "jobtype": job["jobType"],
                                   "state": summarystate,
                                   "site": job.get("location", None),
+                                  "worker_node": job["fwjr"].getWorkerNodeInfo()["HostName"],
                                   "cms_location": job["fwjr"].getSiteName(),
                                   "exitcode": job["fwjr"].getExitCode(),
                                   "errors": errmsgs,
