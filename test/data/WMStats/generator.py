@@ -1,10 +1,8 @@
 from __future__ import print_function
-import json
-import time, datetime
-import random, string
+import time
+import random
 import os
 
-from uuid import uuid1
 from optparse import OptionParser
 
 from WMCore.Database.CMSCouch import CouchServer
