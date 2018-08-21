@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+from __future__ import (division, print_function)
+
+import argparse
+from pprint import pprint
+from WMCore.ReqMgr.CherryPyThreads.StepChainParentageFixTask import getChildDatasetsForStepChainMissingParent
+
+from WMCore.Services.RequestDB.RequestDBWriter import RequestDBWriter
+from WMCore.Services.DBS.DBS3Reader import DBS3Reader
+
+def fixStepChainParentage(statusList, reqmgrDB, dbsSvc):
+    """
+    Look through the stepchain workflows with ParentageResolved flag is False.
+    Fix the StepChain parentage and update the ParentageResolved flag to True
+    """
+    childDatasets = set()
+    requests = set()
+    for status in statusList:
+        info = getChildDatasetsForStepChainMissingParent(reqmgrDB, status)
+        childDatasets = childDatasets.union(info["ChildDatasets"])
+        requests = requests.union(info["Requests"])
+
+    for childDS in childDatasets:
+        dbsSvc.fixMissingParentageDatasets(childDS, insertFlag=True)
+        print("Fixing %s parentage", childDS)
+
+    for request in requests:
+        reqmgrDB.updateRequestProperty(request, {"ParentageResolved": True})
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description="Fix DBS file parentage using run/lumi relations")
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-p', '--production', dest='prod', action='store_true')
+    group.add_argument('-t','--testbed', dest='prod', action='store_false')
+    parser.set_defaults(prod=False)
+    args = parser.parse_args()
+
+    if args.prod:
+    if args.prod:
+        reqmgrdbURL = 'https://cmsweb.cern.ch/couchdb/reqmgr_workload_cache'
+        dbsURL = 'https://cmsweb.cern.ch/dbs/prod/global/DBSWriter'
+        print("Using production: ", dbsURL)
+    else:
+        reqmgrdbURL = 'https://cmsweb-testbed.cern.ch/couchdb/reqmgr_workload_cache'
+        dbsURL = 'https://cmsweb-testbed.cern.ch/dbs/int/global/DBSWriter'
+        reqmgrdbURL = 'https://reqmgr2-dev.cern.ch/couchdb/reqmgr_workload_cache'
+        print("Using testbed: ", dbsURL)
+
+    reqmgrDB = RequestDBWriter(reqmgrdbURL)
+    dbsSvc = DBS3Reader(dbsURL)
+
+    childDataset = getChildDatasetsForStepChainMissingParent(reqmgrDB, "completed")
+    pprint(childDataset)
+
+    fixStepChainParentage(["announced", "normal-archived"], reqmgrDB, dbsSvc)
